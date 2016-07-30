@@ -8,23 +8,33 @@ use cpu::Cpu;
 mod cpu;
 
 fn main() {
-  // get first command line argument
+  // get first command line argument (rom path)
   let rom_name = env::args().nth(1).unwrap();
 
-  let rom_buf = read_bin(rom_name);
+  // get rom buffer
+  let rom_buf = read_rom(rom_name);
 
+  // create a new Cpu
   let mut cpu = Cpu::new(rom_buf);
 
+  // print Cpu cur state
   println!("{:?}", cpu);
 }
 
-fn read_bin<P: AsRef<Path>>(path: P) -> Vec<u8> {
+/// Read ROM as a 8-bit integer vector
+///
+/// # Arguments
+/// * `path` - a path for the ROM to load
+fn read_rom<P: AsRef<Path>>(path: P) -> Vec<u8> {
   // read file
   let mut file = File::open(path).unwrap();
 
-  // get buffer
+  // create a new vector
   let mut file_buffer = Vec::new();
+
+  // get file buffer
   file.read_to_end(&mut file_buffer).unwrap();
 
+  // return buffer
   file_buffer
 }

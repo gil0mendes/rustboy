@@ -1,36 +1,51 @@
+//! Game Boy CPU Registers emulation
+
+/// CPU flags
 #[derive(Debug)]
 enum CpuFlags {
+  /// Zero FLag: set if the result of a match operation is 
+  /// zero or two values compare equal
   Z = 0x10000000,
+  /// Subtract Flag: set if the last math operation performed 
+  /// a subtraction
   N = 0x01000000,
+  /// Half Carry Flag: set if a carry occurred from the lower 
+  /// nibble in the last math operation
   H = 0x00100000,
+  /// Carry Flag: set if a carry occured during the last math 
+  /// operation or if the first operand register compared smaller.
   C = 0x00010000,
 }
 
+/// CPU registers. They're 16 bit wide but some of them can 
+/// be accessed as high and low byte.
 #[derive(Debug)]
 pub struct Registers {
-  /// 8-bit register (accumulator)
+  /// 8-bit `A` register (accumulator)
   pub a: u8,
-  /// 8-bit register
+  /// 8-bit `B` register
   pub b: u8,
-  /// 8-bit register
+  /// 8-bit `C` register
   pub c: u8,
-  /// 8-bit register
+  /// 8-bit `D` register
   pub d: u8,
-  /// 8-bit register
+  /// 8-bit `E` register
   pub e: u8,
-  /// 8-bit register (flags)
+  /// 8-bit `F` register (flags)
   f: u8,
-  /// 8-bit register
+  /// 8-bit `H` register
   pub h: u8,
-  /// 8-bit register
+  /// 8-bit `L` register
   pub l: u8,
-  /// 16-bit register (stack pointer)
+  /// 16-bit (stack pointer)
   pub sp: u16,
-  /// 16-bit register (program counter)
+  /// 16-bit (program counter)
   pub pc: u16,
 }
 
 impl Registers {
+  /// create a new Registers instance and set the regs for 
+  /// initial values after the internal ROM execute
   pub fn new() -> Registers {
     Registers {
       a: 0x01,
@@ -71,30 +86,45 @@ impl Registers {
   // -------------------------------------------------------------------- [Sets]
 
   /// sets the af register value
+  ///  
+  /// # Arguments
+  /// * `value` u8 - value 
   pub fn set_af(&mut self, value: u16) {
     self.a = (value >> 8) as u8;
     self.f = (value & 0x00ff) as u8;
   }
 
   /// sets the bc register value
+  ///  
+  /// # Arguments
+  /// * `value` u8 - value 
   pub fn set_bc(&mut self, value: u16) {
     self.b = (value >> 8) as u8;
     self.c = value as u8;
   }
 
   /// sets the de register value
+  ///  
+  /// # Arguments
+  /// * `value` u8 - value 
   pub fn set_de(&mut self, value: u16) {
     self.d = (value >> 8) as u8;
     self.e = value as u8;
   }
 
   /// sets the hl register value
+  ///  
+  /// # Arguments
+  /// * `value` u8 - value 
   pub fn set_hl(&mut self, value: u16) {
     self.h = (value >> 8) as u8;
     self.l = value as u8;
   }
 
   /// sets the f register value
+  ///  
+  /// # Arguments
+  /// * `value` u8 - value 
   pub fn set_f(&mut self, value: u8) {
     self.f = value & 0xf0;
   }
@@ -103,7 +133,8 @@ impl Registers {
 
   /// get flags state
   ///
-  /// @param flags : CpuFlags   flags to read
+  /// # Arguments
+  /// * `flags` CpuFlags - flags to read
   pub fn flag(&self, flags: CpuFlags) -> bool {
     let mask = flags as u8;
     self.f & mask > 0
@@ -111,8 +142,9 @@ impl Registers {
 
   /// set the flags state
   ///
-  /// @param flags : CpuFlags   flags to set
-  /// @param set : bool         if true all values will be reseted
+  /// # Arguments
+  /// * `flags` CpuFlags - flags to set
+  /// * `set` bool       - if true all values will be reseted
   pub fn set_flag(&mut self, flags: CpuFlags, set: bool) {
     let mask = flags as u8;
 
