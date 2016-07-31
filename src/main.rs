@@ -4,8 +4,10 @@ use std::io::Read;
 use std::path::Path;
 
 use cpu::Cpu;
+use io::Interconnect;
 
 mod cpu;
+mod io;
 
 fn main() {
   // get first command line argument (rom path)
@@ -14,11 +16,13 @@ fn main() {
   // get rom buffer
   let rom_buf = read_rom(rom_name);
 
-  // create a new Cpu
-  let mut cpu = Cpu::new(rom_buf);
+  // create a new Interconnect instance
+  let mut interconnect = Interconnect::new(rom_buf);
 
-  // print Cpu cur state
-  println!("{:?}", cpu);
+  // create a new Cpu instance
+  let mut cpu = Cpu::new(interconnect);
+
+  cpu.run()
 }
 
 /// Read ROM as a 8-bit integer vector

@@ -2,7 +2,7 @@
 
 /// CPU flags
 #[derive(Debug)]
-enum CpuFlags {
+pub enum Flags {
   /// Zero FLag: set if the result of a match operation is 
   /// zero or two values compare equal
   Z = 0x10000000,
@@ -19,7 +19,7 @@ enum CpuFlags {
 
 /// CPU registers. They're 16 bit wide but some of them can 
 /// be accessed as high and low byte.
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub struct Registers {
   /// 8-bit `A` register (accumulator)
   pub a: u8,
@@ -58,6 +58,15 @@ impl Registers {
       l: 0x4d,
       sp: 0xfffe,
       pc: 0x100,
+    }
+  }
+
+  /// create a new Register instance for GBC and set the 
+  /// regs for initial value after the internal ROM execute
+  pub fn new_gbc() -> Registers {
+    Registers {
+      a: 0x11,
+      ..Registers::new()
     }
   }
 
@@ -134,8 +143,8 @@ impl Registers {
   /// get flags state
   ///
   /// # Arguments
-  /// * `flags` CpuFlags - flags to read
-  pub fn flag(&self, flags: CpuFlags) -> bool {
+  /// * `flags` Flags - flags to read
+  pub fn flag(&self, flags: Flags) -> bool {
     let mask = flags as u8;
     self.f & mask > 0
   }
@@ -143,9 +152,9 @@ impl Registers {
   /// set the flags state
   ///
   /// # Arguments
-  /// * `flags` CpuFlags - flags to set
+  /// * `flags` Flags - flags to set
   /// * `set` bool       - if true active the flag
-  pub fn set_flag(&mut self, flags: CpuFlags, set: bool) {
+  pub fn set_flag(&mut self, flags: Flags, set: bool) {
     let mask = flags as u8;
 
 
