@@ -144,7 +144,7 @@ impl Registers {
   ///
   /// # Arguments
   /// * `flags` CpuFlags - flags to set
-  /// * `set` bool       - if true all values will be reseted
+  /// * `set` bool       - if true active the flag
   pub fn set_flag(&mut self, flags: CpuFlags, set: bool) {
     let mask = flags as u8;
 
