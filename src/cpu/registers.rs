@@ -92,6 +92,20 @@ impl Registers {
     ((self.h as u16) << 8) | (self.l as u16)
   }
 
+  /// get hl value and decrement 
+  pub fn hld(&mut self) -> u16 {
+    let word = self.hl();
+    self.set_hl(word - 1);
+    word
+  }
+
+  /// get hl value and increment
+  pub fn hli(&mut self) -> u16 {
+    let word = self.hl();
+    self.set_hl(word + 1);
+    word
+  }
+
   // -------------------------------------------------------------------- [Sets]
 
   /// sets the af register value
@@ -124,10 +138,18 @@ impl Registers {
   /// sets the hl register value
   ///  
   /// # Arguments
-  /// * `value` u8 - value 
+  /// * `value` u16 - value 
   pub fn set_hl(&mut self, value: u16) {
     self.h = (value >> 8) as u8;
     self.l = value as u8;
+  }
+
+  /// sets the sp register value
+  ///
+  /// # Arguments
+  /// * `value` u16 - value
+  pub fn set_sp(&mut self, value: u16) {
+    self.sp = value;
   }
 
   /// sets the f register value
