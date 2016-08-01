@@ -19,6 +19,9 @@ fn main() {
   // create a new Interconnect instance
   let mut interconnect = Interconnect::new(rom_buf);
 
+  // reset memory state
+  interconnect.reset();
+
   // create a new Cpu instance
   let mut cpu = Cpu::new(interconnect);
 
