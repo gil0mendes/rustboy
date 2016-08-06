@@ -342,6 +342,20 @@ impl Cpu {
         0xa5 => { self.alu_and(regs.l); 1 },
         // AND (HL)
         0xa6 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_and(value); 1 },
+        // AND B
+        0xa8 => { self.alu_and(regs.b); 1 },
+        // AND C
+        0xa9 => { self.alu_and(regs.c); 1 },
+        // AND D
+        0xaa => { self.alu_and(regs.d); 1 },
+        // AND E
+        0xab => { self.alu_and(regs.e); 1 },
+        // AND H
+        0xac => { self.alu_and(regs.h); 1 },
+        // AND L
+        0xad => { self.alu_and(regs.l); 1 },
+        // AND (HL)
+        0xae => { let value = self.interconnect.read_byte(regs.hl()); self.alu_and(value); 2 },
         // AND A
         0xa7 => { self.alu_and(regs.a); 1 },
         // XOR
@@ -392,6 +406,8 @@ impl Cpu {
         0xe6 => { let value = self.fetch_byte(); self.alu_and(value); 1 },
         // LD (nn),A
         0xea => { let word = self.fetch_word(); self.interconnect.write_byte(word, regs.a); 3 },
+        // AND #
+        0xee => { let value = self.fetch_byte(); self.alu_and(value); 2 },
         // LDH A,(n)
         0xf0 => { let byte = self.fetch_byte(); self.regs.a = self.interconnect.read_byte(0xff00 + byte as u16); 3 },
         // POP AF
@@ -498,12 +514,18 @@ impl Cpu {
     self.regs.a = old_a;
   }
 
+  /// make a xor operation in A
   fn alu_xor(&mut self, byte: u8) {
+    // make the logical exclusive or operation
     let result = self.regs.a ^ byte;
+
+    // update reg A value
+    self.regs.a = result;
+
+    // update CPU flags
     self.regs.set_flag(Flags::Z, result == 0);
     self.regs.set_flag(Flags::N, false);
     self.regs.set_flag(Flags::H, false);
     self.regs.set_flag(Flags::C, false);
-    self.regs.a = result;
   }
 }
