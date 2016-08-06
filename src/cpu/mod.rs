@@ -82,14 +82,17 @@ impl Cpu {
       self.updateIme();
 
       // process the next instruction
-      let ticks = self.process_next_insctruction();
+      let cycles = (self.process_next_insctruction() * 4) as u32;
+
+      // do the interconnect cycle
+      self.interconnect.do_cycle(cycles);
     }
   }
 
   /// push a value to stack
   fn stack_push(&mut self, value: u16) {
       self.interconnect.write_word(self.regs.sp, value);
-      self.regs.sp -= 2
+      self.regs.sp -= 2;
   }
 
   /// pop a value from stack

@@ -1,6 +1,8 @@
 use self::gpu::GPU;
+use self::timer::Timer;
 
 mod gpu;
+mod timer;
 
 #[derive(Debug)]
 pub struct Interconnect {
@@ -15,7 +17,9 @@ pub struct Interconnect {
   // Work RAM (8KB)
   wram: Vec<u8>,
   // GPU
-  gpu: GPU
+  gpu: GPU,
+  // Timer
+  timer: Timer,
 }
 
 impl Interconnect {
@@ -26,7 +30,8 @@ impl Interconnect {
       hram: vec![0x20; 0x7f],
       inte: 0x00,
       wram: vec![0x20; 0x2000],
-      gpu: GPU::new()
+      gpu: GPU::new(),
+      timer: Timer::new()
     }
   }
 
@@ -66,6 +71,16 @@ impl Interconnect {
     self.write_byte(0xffff, 0x00);
   }
 
+  pub fn do_cycle(&mut self, ticks: u32) {
+    // TODO: this must use Game Boy Speed and VRAM ticks
+    let cpu_ticks = ticks;
+
+    // timer
+    self.timer.do_cycle(cpu_ticks);
+    self.inte |= self.timer.interrupt;
+    self.timer.interrupt = 0;
+  }
+
   /// read a byte from the interconnect
   pub fn read_byte(&self, address: u16) -> u8 {
     match address {
@@ -80,7 +95,7 @@ impl Interconnect {
       // Serial
       0xff01 ... 0xff02 => panic!("TODO: read serial"),
       // Time
-      0xff04 ... 0xff07 => panic!("TODO: read time"),
+      0xff04 ... 0xff07 => self.timer.read_byte(address),
       // Interrupt Flags
       0xff0f => panic!("TODO: read  interrupt flags"),
       // Sound
@@ -94,23 +109,25 @@ impl Interconnect {
     }
   }
 
+  /// read a word from the interconnect
   pub fn read_word(&self, addr: u16) -> u16 {
     (self.read_byte(addr) as u16) | ((self.read_byte(addr + 1) as u16) << 8)
   }
 
-  pub fn write_byte(&mut self, addr: u16, value: u8) {
-    match addr {
-      0xc000 ... 0xcfff => self.wram[addr as usize & 0x0fff] = value,
+  /// write a byte to the interconnect
+  pub fn write_byte(&mut self, address: u16, value: u8) {
+    match address {
+      0xc000 ... 0xcfff => self.wram[address as usize & 0x0fff] = value,
       // TODO: this can be switchable bank 1-7 in GBC
-      0xd000 ... 0xdfff => self.wram[addr as usize & 0x0fff] = value,
-      // Time
-      0xff04 ... 0xff07 => panic!("TODO: write time"),
+      0xd000 ... 0xdfff => self.wram[address as usize & 0x0fff] = value,
+      // Timer
+      0xff04 ... 0xff07 => self.timer.write_byte(address, value),
       // GPU
-      0xff40 ... 0xff4b => self.gpu.write_byte(addr, value),
+      0xff40 ... 0xff4b => self.gpu.write_byte(address, value),
       // High RAM
-      0xff80 ... 0xfffe => self.hram[addr as usize & 0x007f] = value,
+      0xff80 ... 0xfffe => self.hram[address as usize & 0x007f] = value,
       0xffff => self.inte = value,
-      _ => { panic!("Write for an unrecognized address: {:#x}", addr); }
+      _ => { panic!("Write for an unrecognized address: {:#x}", address); }
     }
   }
 
