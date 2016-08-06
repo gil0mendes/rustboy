@@ -639,21 +639,25 @@ impl Cpu {
     self.regs.set_flag(Flags::C, (a as u16) + (value as u16) + (carry as u16) > 0xff);
   }
 
+  /// perform a subtraction
   fn alu_sub(&mut self, byte: u8, usec: bool) {
     // get carry
     let c = if usec && self.regs.flag(Flags::C) { 1 } else { 0 };
 
+    // get reg A value
     let a = self.regs.a;
 
+    // compute the result
     let result = a.wrapping_sub(byte).wrapping_sub(c);
 
-    // set flags
+    // update the value of reg A
+    self.regs.a = result;
+
+    // update CPU flags
     self.regs.set_flag(Flags::Z, result == 0);
     self.regs.set_flag(Flags::N, true);
-    self.regs.set_flag(Flags::H, (a & 0x0f) < (result & 0x0f) + c);
-    self.regs.set_flag(Flags::C, (a as u16) < (result as u16) + (c as u16));
-
-    self.regs.a = result;
+    self.regs.set_flag(Flags::H, (a & 0x0f) < (byte & 0x0f) + c);
+    self.regs.set_flag(Flags::C, (a as u16) < (byte as u16) + (c as u16));
   }
 
   /// make a compare of A with byte
