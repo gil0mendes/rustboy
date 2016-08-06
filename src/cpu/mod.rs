@@ -280,6 +280,22 @@ impl Cpu {
         0x86 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_add(value, true); 2 },
         // ADD A,A
         0x87 => { self.alu_add(regs.a, false); 1 },
+        // ADC A,B
+        0x88 => { self.alu_add(regs.b, true); 1 },
+        // ADC A,C
+        0x89 => { self.alu_add(regs.c, true); 1 },
+        // ADC A,D
+        0x8a => { self.alu_add(regs.d, true); 1 },
+        // ADC A,E
+        0x8b => { self.alu_add(regs.e, true); 1 },
+        // ADC A,H
+        0x8c => { self.alu_add(regs.h, true); 1 },
+        // ADC A,L
+        0x8d => { self.alu_add(regs.l, true); 1 },
+        // ADC A,(HL)
+        0x8e => { let value = self.interconnect.read_byte(regs.hl()); self.alu_add(value, true); 2 },
+        // ADC A,A
+        0x8f => { self.alu_add(regs.a, true); 1 },
         // XOR
         0xaf => { self.alu_xor(regs.a); 1 },
         // POP BC
@@ -290,6 +306,8 @@ impl Cpu {
         0xc5 => { self.stack_push(regs.bc()); 3 },
         // ADD A,#
         0xc6 => { let value = self.fetch_byte(); self.alu_add(value, false); 2 },
+        // ADC A,#
+        0xce => { let value = self.fetch_byte(); self.alu_add(value, true); 2 },
         // POP DE
         0xd1 => { let value = self.stack_pop(); self.regs.set_de(value); 3 },
         // PUSH DE
