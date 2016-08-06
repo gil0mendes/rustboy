@@ -1,10 +1,12 @@
 use self::gpu::GPU;
 use self::timer::Timer;
 use self::sound::Sound;
+use self::serial::Serial;
 
 mod gpu;
 mod timer;
 mod sound;
+mod serial;
 
 #[derive(Debug)]
 pub struct Interconnect {
@@ -16,6 +18,8 @@ pub struct Interconnect {
   hram: Vec<u8>,
   /// Interrupt Enable Register
   pub inte: u8,
+  /// Interrupt Flag 
+  pub intf: u8,
   // Work RAM (8KB)
   wram: Vec<u8>,
   // GPU
@@ -24,6 +28,8 @@ pub struct Interconnect {
   timer: Timer,
   // Sound
   sound: Sound,
+  // Serial
+  serial: Serial,
 }
 
 impl Interconnect {
@@ -32,11 +38,13 @@ impl Interconnect {
       rom: rom_buf,
       io: vec![0x20; 0x7f],
       hram: vec![0x20; 0x7f],
-      inte: 0x00,
+      inte: 0,
+      intf: 0,
       wram: vec![0x20; 0x2000],
       gpu: GPU::new(),
       timer: Timer::new(),
-      sound: Sound::new()
+      sound: Sound::new(),
+      serial: Serial::new()
     }
   }
 
@@ -97,15 +105,17 @@ impl Interconnect {
       // Keypad
       0xff00 => panic!("TODO: read keypad"),
       // Serial
-      0xff01 ... 0xff02 => panic!("TODO: read serial"),
+      0xff01 ... 0xff02 => self.serial.read_byte(address),
       // Time
       0xff04 ... 0xff07 => self.timer.read_byte(address),
       // Interrupt Flags
-      0xff0f => panic!("TODO: read  interrupt flags"),
+      0xff0f => self.intf,
       // Sound
       0xff10 ... 0xff3f => panic!("TODO: read sounds"),
       // GPU
       0xff40 ... 0xff4b => self.gpu.read_byte(address),
+      // Infrared (Implementation don't needed)
+      0xff56 => { 0 },
       // IE (Interrupt Enable)
       0xffff => self.inte,
       // invalid address
@@ -124,14 +134,21 @@ impl Interconnect {
       0xc000 ... 0xcfff => self.wram[address as usize & 0x0fff] = value,
       // TODO: this can be switchable bank 1-7 in GBC
       0xd000 ... 0xdfff => self.wram[address as usize & 0x0fff] = value,
+      // Serial
+      0xff01 ... 0xff02 => self.serial.write_byte(address, value),
       // Timer
       0xff04 ... 0xff07 => self.timer.write_byte(address, value),
+      // Interrupt Flags
+      0xff0f => self.intf = value,
       // Sound
       0xff10 ... 0xff3f => self.sound.write_byte(address, value),
       // GPU
       0xff40 ... 0xff4b => self.gpu.write_byte(address, value),
+      // Infrared (Implementation don't needed)
+      0xff56 => { },
       // High RAM
       0xff80 ... 0xfffe => self.hram[address as usize & 0x007f] = value,
+      // Interrupt Enable
       0xffff => self.inte = value,
       _ => { panic!("Write for an unrecognized address: {:#x}", address); }
     }

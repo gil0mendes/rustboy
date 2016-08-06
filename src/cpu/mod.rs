@@ -106,8 +106,6 @@ impl Cpu {
     // fetch a byte from the PC address
       let opcode = self.fetch_byte();
 
-      println!("Op -> {:#x}", opcode);
-
       // get current regs state
       let regs = self.regs;
 
