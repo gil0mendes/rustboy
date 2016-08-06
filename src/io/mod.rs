@@ -7,7 +7,9 @@ pub struct Interconnect {
   /// Internal RAM
   hram: Vec<u8>,
   /// Interrupt Enable Register
-  pub inte: u8
+  pub inte: u8,
+  // Work RAM (8KB)
+  wram: Vec<u8>
 }
 
 impl Interconnect {
@@ -16,7 +18,8 @@ impl Interconnect {
       rom: rom_buf,
       io: vec![0x20; 0x7f],
       hram: vec![0x20; 0x7f],
-      inte: 0x00
+      inte: 0x00,
+      wram: vec![0x20; 0x2000]
     }
   }
 
@@ -58,8 +61,15 @@ impl Interconnect {
 
   pub fn read_byte(&self, addr: u16) -> u8 {
     match addr {
+      // Cartridge ROM
       0x0000 ... 0x3fff => self.rom[addr as usize],
-      _ => { panic!("Unrecognized address: {:#x}", addr); }
+      // Work RAM bank 0
+      0xc000 ... 0xcfff => self.wram[addr as usize & 0x0fff],
+      // TODO: this can be switchable bank 1-7 in GBC
+      0xd000 ... 0xdfff => self.wram[addr as usize & 0x0fff],
+      // TODO: I/O Ports
+      0xff00 ... 0xff7f => self.io[addr as usize & 0x007f],
+      _ => { panic!("Read from an unrecognized address: {:#x}", addr); }
     }
   }
 
@@ -69,10 +79,15 @@ impl Interconnect {
 
   pub fn write_byte(&mut self, addr: u16, value: u8) {
     match addr {
+      0xc000 ... 0xcfff => self.wram[addr as usize & 0x0fff] = value,
+      // TODO: this can be switchable bank 1-7 in GBC
+      0xd000 ... 0xdfff => self.wram[addr as usize & 0x0fff] = value,
+      // TODO: I/O Ports
       0xff00 ... 0xff7f => self.io[addr as usize & 0x007f] = value,
+      // High RAM
       0xff80 ... 0xfffe => self.hram[addr as usize & 0x007f] = value,
       0xffff => self.inte = value,
-      _ => { panic!("Unrecognized address: {:#x}", addr); }
+      _ => { panic!("Write for an unrecognized address: {:#x}", addr); }
     }
   }
 
