@@ -346,6 +346,22 @@ impl Cpu {
         0xa7 => { self.alu_and(regs.a); 1 },
         // XOR
         0xaf => { self.alu_xor(regs.a); 1 },
+        // OR B
+        0xb0 => { self.alu_or(regs.b); 1 },
+        // OR C
+        0xb1 => { self.alu_or(regs.c); 1 },
+        // OR D
+        0xb2 => { self.alu_or(regs.d); 1 },
+        // OR E
+        0xb3 => { self.alu_or(regs.e); 1 },
+        // OR H
+        0xb4 => { self.alu_or(regs.h); 1 },
+        // OR L
+        0xb5 => { self.alu_or(regs.l); 1 },
+        // OR (HL)
+        0xb6 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_or(value); 2 },
+        // OR A
+        0xb7 => { self.alu_or(regs.a); 1 },
         // POP BC
         0xc1 => { let value = self.stack_pop(); self.regs.set_bc(value); 3 },
         // JP nn
@@ -384,6 +400,8 @@ impl Cpu {
         0xf2 => { let byte = self.interconnect.read_byte(0xff00 + regs.c as u16); self.regs.a = byte; 2 },
         // PUSH AF
         0xf5 => { self.stack_push(regs.af()); 4 },
+        // OR #
+        0xf6 => { let value = self.fetch_byte(); self.alu_or(value); 2 },
         // LDHL SP,n
         0xf8 => { let result = self.alu_add16imm(regs.sp); self.regs.set_hl(result); 2 },
         // LD SP,HL
@@ -394,6 +412,20 @@ impl Cpu {
         0xfe => { let byte = self.fetch_byte(); self.alu_cp(byte); 2 },
         _ => { panic!("Unrecognized opcode: {:#x}", opcode); },
       }
+  }
+
+  fn alu_or(&mut self, value: u8) {
+    // make the logical or operation
+    let result = self.regs.a | value;
+
+    // update reg A value
+    self.regs.a = result;
+
+    // update CPU flags
+    self.regs.set_flag(Flags::Z, result == 0);
+    self.regs.set_flag(Flags::N, false);
+    self.regs.set_flag(Flags::H, false);
+    self.regs.set_flag(Flags::C, false);
   }
 
   /// make a logical and with the reg A
