@@ -161,6 +161,8 @@ impl Cpu {
         0x1a => { self.regs.a = self.interconnect.read_byte(regs.de()); 2 },
         // LD E,n
         0x1e => { self.regs.e = self.fetch_byte(); 2 },
+        // HR NZ,n
+        0x20 => { if !self.regs.flag(Flags::Z) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // LD HL,nn
         0x21 => { let word = self.fetch_word(); self.regs.set_hl(word); 3 },
         // LD (HLI),A
@@ -174,20 +176,7 @@ impl Cpu {
         // LD H,n
         0x26 => { self.regs.h = self.fetch_byte(); 2 },
         // JR cc,n
-        0x28 => {
-          let n = self.fetch_byte();
-
-          if regs.flag(Flags::Z) {
-            if regs.flag(Flags::C) {
-              self.regs.pc = regs.pc + (n as u16);
-              3
-            } else {
-              2
-            }
-          } else {
-            2
-          }
-        },
+        0x28 => { if self.regs.flag(Flags::Z) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // ADD HL, HL
         0x29 => { self.alu_add16(regs.hl()); 2 },
         // LDI A,(HL)
@@ -198,6 +187,8 @@ impl Cpu {
         0x2c => { self.regs.l = self.alu_inc(regs.l); 1 }
         // LD L,n
         0x2e => { self.regs.l = self.fetch_byte(); 2 },
+        // JR NC,n
+        0x30 => { if !self.regs.flag(Flags::C) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // LD SP,nn
         0x31 => { let word = self.fetch_word(); self.regs.set_sp(word); 3 },
         // LD (HLD)
@@ -210,6 +201,8 @@ impl Cpu {
         0x35 => { let mut value = self.interconnect.read_byte(regs.hl()); value = self.alu_dec(value); self.interconnect.write_byte(regs.hl(), value); 3 }
         // LD (HL),n
         0x36 => { let byte = self.fetch_byte(); self.interconnect.write_byte(regs.hl(), byte); 3 },
+        // JR C,n
+        0x38 => { if self.regs.flag(Flags::C) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // ADD HL, SP
         0x39 => { self.alu_add16(regs.sp); 2 },
         // LD A,(HLD)
@@ -685,5 +678,14 @@ impl Cpu {
     self.regs.set_flag(Flags::N, false);
     self.regs.set_flag(Flags::H, false);
     self.regs.set_flag(Flags::C, false);
+  }
+
+  /// process the relative jump
+  fn cpu_jr(&mut self) {
+    // get the next byte
+    let n = self.fetch_byte();
+
+    // compute the new PC address
+    self.regs.pc = self.regs.pc + (n as i8 as u16);
   }
 }
