@@ -91,8 +91,12 @@ impl Cpu {
         0x08 => { let word = self.fetch_word(); self.interconnect.write_word(word, regs.sp); 5},
         // LD B,n
         0x06 => { self.regs.b = self.fetch_byte(); 2 },
+        // ADD HL, BC
+        0x09 => { self.alu_add16(regs.bc()); 2 },
         // LD DE,nn
         0x11 => { let word = self.fetch_word(); self.regs.set_de(word); 3 },
+        // ADD HL, DE
+        0x19 => { self.alu_add16(regs.de()); 2 },
         // LD A, (BC)
         0x0a => { self.regs.a = self.interconnect.read_byte(regs.bc()); 2 },
         // INC C
@@ -144,6 +148,8 @@ impl Cpu {
             2
           }
         },
+        // ADD HL, HL
+        0x29 => { self.alu_add16(regs.hl()); 2 },
         // LDI A,(HL)
         0x2a => { self.regs.a = self.interconnect.read_byte(self.regs.hli()); 2 },
         // INC L
@@ -160,6 +166,8 @@ impl Cpu {
         0x35 => { let mut value = self.interconnect.read_byte(regs.hl()); value = self.alu_dec(value); self.interconnect.write_byte(regs.hl(), value); 3 }
         // LD (HL),n
         0x36 => { let byte = self.fetch_byte(); self.interconnect.write_byte(regs.hl(), byte); 3 },
+        // ADD HL, SP
+        0x39 => { self.alu_add16(regs.sp); 2 },
         // LD A,(HLD)
         0x3a => { self.regs.a = self.interconnect.read_byte(self.regs.hld()); 2 },
         // INC A
@@ -542,6 +550,20 @@ impl Cpu {
     self.regs.set_flag(Flags::C, byte & 0x00ff > 0x00ff);
 
     sp.wrapping_add(byte)
+  }
+
+  /// add a value to reg HL
+  fn alu_add16(&mut self, value: u16) {
+    // compute the addiction
+    let result = self.regs.hl().wrapping_add(value);
+
+    // update reg HL reg
+    self.regs.set_hl(result);
+
+    // update CPU flags
+    self.regs.set_flag(Flags::N, false);
+    self.regs.set_flag(Flags::H, (result & 0xfff) + (value & 0xfff) > 0xfff);
+    self.regs.set_flag(Flags::C, result > 0xffff - value);
   }
 
   /// add a value to reg A
