@@ -83,6 +83,8 @@ impl Cpu {
         0x01 => { let word = self.fetch_word(); self.regs.set_bc(word); 3 },
         // LD (BC),A
         0x02 => { self.interconnect.write_byte(regs.bc(), regs.a); 2 },
+        // INC B
+        0x04 => { self.regs.b = self.alu_inc(regs.b); 1 }
         // LD (nn),SP
         0x08 => { let word = self.fetch_word(); self.interconnect.write_word(word, regs.sp); 5},
         // LD B,n
@@ -91,10 +93,16 @@ impl Cpu {
         0x11 => { let word = self.fetch_word(); self.regs.set_de(word); 3 },
         // LD A, (BC)
         0x0a => { self.regs.a = self.interconnect.read_byte(regs.bc()); 2 },
+        // INC C
+        0x0c => { self.regs.c = self.alu_inc(regs.c); 1 }
         // LD (DE),A
         0x12 => { self.interconnect.write_byte(regs.de(), regs.a); 2 },
+        // INC D
+        0x14 => { self.regs.d = self.alu_inc(regs.d); 1 }
         // JP (HL)
         0x18 => { self.regs.pc = regs.pc + (self.fetch_byte() as u16); 1 },
+        // INC E
+        0x1c => { self.regs.e = self.alu_inc(regs.e); 1 }
         // LD C,n
         0x0e => { self.regs.c = self.fetch_byte(); 2 },
         // LD D,n
@@ -107,6 +115,8 @@ impl Cpu {
         0x21 => { let word = self.fetch_word(); self.regs.set_hl(word); 3 },
         // LD (HLI),A
         0x22 => { self.interconnect.write_byte(self.regs.hli(), regs.a); 2 },
+        // INC H
+        0x24 => { self.regs.h = self.alu_inc(regs.h); 1 }
         // LD H,n
         0x26 => { self.regs.h = self.fetch_byte(); 2 },
         // JR cc,n
@@ -126,16 +136,22 @@ impl Cpu {
         },
         // LDI A,(HL)
         0x2a => { self.regs.a = self.interconnect.read_byte(self.regs.hli()); 2 },
+        // INC L
+        0x2c => { self.regs.l = self.alu_inc(regs.l); 1 }
         // LD L,n
         0x2e => { self.regs.l = self.fetch_byte(); 2 },
         // LD SP,nn
         0x31 => { let word = self.fetch_word(); self.regs.set_sp(word); 3 },
         // LD (HLD)
         0x32 => { self.interconnect.write_byte(self.regs.hld(), regs.a); 2 },
+        // INC (HL)
+        0x34 => { let mut value = self.interconnect.read_byte(regs.hl()); value = self.alu_inc(value); self.interconnect.write_byte(regs.hl(), value); 3 }
         // LD (HL),n
         0x36 => { let byte = self.fetch_byte(); self.interconnect.write_byte(regs.hl(), byte); 3 },
         // LD A,(HLD)
         0x3a => { self.regs.a = self.interconnect.read_byte(self.regs.hld()); 2 },
+        // INC A
+        0x3c => { self.regs.a = self.alu_inc(regs.a); 1 }
         // LD A,n
         0x3e => { self.regs.a = self.fetch_byte(); 2 },
         // LD B,B
@@ -444,6 +460,20 @@ impl Cpu {
         0xfe => { let byte = self.fetch_byte(); self.alu_cp(byte); 2 },
         _ => { panic!("Unrecognized opcode: {:#x}", opcode); },
       }
+  }
+
+  /// increment a value and update the CPU flags
+  fn alu_inc(&mut self, value: u8) -> u8 {
+    // compute the increment
+    let result = value.wrapping_add(1);
+
+    // update CPU flags
+    self.regs.set_flag(Flags::Z, result == 0);
+    self.regs.set_flag(Flags::N, false);
+    self.regs.set_flag(Flags::H, (value & 0xf) + 1 > 0xf);
+
+    // return the result
+    result
   }
 
   fn alu_or(&mut self, value: u8) {
