@@ -458,6 +458,8 @@ impl Cpu {
         0xe5 => { self.stack_push(regs.hl()); 3 },
         // AND #
         0xe6 => { let value = self.fetch_byte(); self.alu_and(value); 1 },
+        // ADD SP, #
+        0xe8 => { self.regs.sp = self.alu_add16imm(regs.sp); 4},
         // LD (nn),A
         0xea => { let word = self.fetch_word(); self.interconnect.write_byte(word, regs.a); 3 },
         // AND #
@@ -541,14 +543,18 @@ impl Cpu {
     self.regs.set_flag(Flags::C, false);
   }
 
+  /// add immediate to sp and update CPU flags
   fn alu_add16imm(&mut self, sp: u16) -> u16 {
+    // cast byte to the correct type
     let byte = self.fetch_byte() as i8 as u16;
     
+    // update the CPU flags
     self.regs.set_flag(Flags::Z, false);
     self.regs.set_flag(Flags::N, false);
     self.regs.set_flag(Flags::H, byte & 0x000f > 0x000f);
     self.regs.set_flag(Flags::C, byte & 0x00ff > 0x00ff);
 
+    // compute the addiction and return it
     sp.wrapping_add(byte)
   }
 
