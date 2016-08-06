@@ -95,6 +95,8 @@ impl Cpu {
         0x06 => { self.regs.b = self.fetch_byte(); 2 },
         // ADD HL, BC
         0x09 => { self.alu_add16(regs.bc()); 2 },
+        // DEC BC
+        0x0b => { self.regs.set_bc(regs.bc().wrapping_sub(1)); 2 },
         // LD DE,nn
         0x11 => { let word = self.fetch_word(); self.regs.set_de(word); 3 },
         // ADD HL, DE
@@ -115,6 +117,8 @@ impl Cpu {
         0x15 => { self.regs.d = self.alu_dec(regs.d); 1 },
         // JP (HL)
         0x18 => { self.regs.pc = regs.pc + (self.fetch_byte() as u16); 1 },
+        // DEC DE
+        0x1b => { self.regs.set_de(regs.de().wrapping_sub(1)); 2 },
         // INC E
         0x1c => { self.regs.e = self.alu_inc(regs.e); 1 }
         // DEC E
@@ -158,6 +162,8 @@ impl Cpu {
         0x29 => { self.alu_add16(regs.hl()); 2 },
         // LDI A,(HL)
         0x2a => { self.regs.a = self.interconnect.read_byte(self.regs.hli()); 2 },
+        // DEC HL
+        0x2b => { self.regs.set_hl(regs.hl().wrapping_sub(1)); 2 },
         // INC L
         0x2c => { self.regs.l = self.alu_inc(regs.l); 1 }
         // LD L,n
@@ -178,6 +184,8 @@ impl Cpu {
         0x39 => { self.alu_add16(regs.sp); 2 },
         // LD A,(HLD)
         0x3a => { self.regs.a = self.interconnect.read_byte(self.regs.hld()); 2 },
+        // DEC SP
+        0x3b => { self.regs.sp = regs.sp.wrapping_sub(1); 2 },
         // INC A
         0x3c => { self.regs.a = self.alu_inc(regs.a); 1 }
         // DEC A
