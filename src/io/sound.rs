@@ -19,7 +19,7 @@ impl Sound {
   /// write a value to the sound memory space
   pub fn write_byte(&mut self, address: u16, value: u8) {
     match address {
-      _ => panic!("Sound handle write to address {:#x}", address),
+      _ => println!("Sound handle write to address {:#x}", address),
     }
   }
 }

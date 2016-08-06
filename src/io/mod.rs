@@ -62,7 +62,6 @@ impl Interconnect {
     self.write_byte(0xff23, 0xbf);
     self.write_byte(0xff24, 0x77);
     self.write_byte(0xff25, 0xf3);
-    // TODO - set to 0xf0 on super game boy
     self.write_byte(0xff26, 0xf1);
     self.write_byte(0xff40, 0x91);
     self.write_byte(0xff42, 0x00);
