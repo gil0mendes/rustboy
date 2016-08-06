@@ -103,6 +103,8 @@ impl Cpu {
     // fetch a byte from the PC address
       let opcode = self.fetch_byte();
 
+      println!("Op -> {:#x}", opcode);
+
       // get current regs state
       let regs = self.regs;
 
@@ -683,9 +685,9 @@ impl Cpu {
   /// process the relative jump
   fn cpu_jr(&mut self) {
     // get the next byte
-    let n = self.fetch_byte();
+    let n = self.fetch_byte() as i8;
 
     // compute the new PC address
-    self.regs.pc = self.regs.pc + (n as i8 as u16);
+    self.regs.pc = ((self.regs.pc as u32 as i32) + (n as i32)) as u16;
   }
 }

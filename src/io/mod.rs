@@ -1,3 +1,7 @@
+use self::gpu::GPU;
+
+mod gpu;
+
 #[derive(Debug)]
 pub struct Interconnect {
   /// ROM bank #0 (16KB)
@@ -9,7 +13,9 @@ pub struct Interconnect {
   /// Interrupt Enable Register
   pub inte: u8,
   // Work RAM (8KB)
-  wram: Vec<u8>
+  wram: Vec<u8>,
+  // GPU
+  gpu: GPU
 }
 
 impl Interconnect {
@@ -19,7 +25,8 @@ impl Interconnect {
       io: vec![0x20; 0x7f],
       hram: vec![0x20; 0x7f],
       inte: 0x00,
-      wram: vec![0x20; 0x2000]
+      wram: vec![0x20; 0x2000],
+      gpu: GPU::new()
     }
   }
 
@@ -59,17 +66,31 @@ impl Interconnect {
     self.write_byte(0xffff, 0x00);
   }
 
-  pub fn read_byte(&self, addr: u16) -> u8 {
-    match addr {
+  /// read a byte from the interconnect
+  pub fn read_byte(&self, address: u16) -> u8 {
+    match address {
       // Cartridge ROM
-      0x0000 ... 0x3fff => self.rom[addr as usize],
+      0x0000 ... 0x3fff => self.rom[address as usize],
       // Work RAM bank 0
-      0xc000 ... 0xcfff => self.wram[addr as usize & 0x0fff],
+      0xc000 ... 0xcfff => self.wram[address as usize & 0x0fff],
       // TODO: this can be switchable bank 1-7 in GBC
-      0xd000 ... 0xdfff => self.wram[addr as usize & 0x0fff],
-      // TODO: I/O Ports
-      0xff00 ... 0xff7f => self.io[addr as usize & 0x007f],
-      _ => { panic!("Read from an unrecognized address: {:#x}", addr); }
+      0xd000 ... 0xdfff => self.wram[address as usize & 0x0fff],
+      // Keypad
+      0xff00 => panic!("TODO: read keypad"),
+      // Serial
+      0xff01 ... 0xff02 => panic!("TODO: read serial"),
+      // Time
+      0xff04 ... 0xff07 => panic!("TODO: read time"),
+      // Interrupt Flags
+      0xff0f => panic!("TODO: read  interrupt flags"),
+      // Sound
+      0xff10 ... 0xff3f => panic!("TODO: read sounds"),
+      // GPU
+      0xff40 ... 0xff4b => self.gpu.read_byte(address),
+      // IE (Interrupt Enable)
+      0xffff => self.inte,
+      // invalid address
+      _ => { panic!("Read from an unrecognized address: {:#x}", address); }
     }
   }
 
@@ -82,8 +103,10 @@ impl Interconnect {
       0xc000 ... 0xcfff => self.wram[addr as usize & 0x0fff] = value,
       // TODO: this can be switchable bank 1-7 in GBC
       0xd000 ... 0xdfff => self.wram[addr as usize & 0x0fff] = value,
-      // TODO: I/O Ports
-      0xff00 ... 0xff7f => self.io[addr as usize & 0x007f] = value,
+      // Time
+      0xff04 ... 0xff07 => panic!("TODO: write time"),
+      // GPU
+      0xff40 ... 0xff4b => self.gpu.write_byte(addr, value),
       // High RAM
       0xff80 ... 0xfffe => self.hram[addr as usize & 0x007f] = value,
       0xffff => self.inte = value,
