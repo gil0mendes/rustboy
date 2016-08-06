@@ -310,8 +310,24 @@ impl Cpu {
         0x95 => { self.alu_sub(regs.l, false); 1 },
         // SUB (HL)
         0x96 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_sub(value, false); 2 },
+        // SBC B
+        0x98 => { self.alu_sub(regs.b, true); 1 },
+        // SBC C
+        0x99 => { self.alu_sub(regs.c, true); 1 },
+        // SBC D
+        0x9a => { self.alu_sub(regs.d, true); 1 },
+        // SBC E
+        0x9b => { self.alu_sub(regs.e, true); 1 },
+        // SBC H
+        0x9c => { self.alu_sub(regs.h, true); 1 },
+        // SBC L
+        0x9d => { self.alu_sub(regs.l, true); 1 },
+        // SBC (HL)
+        0x9e => { let value = self.interconnect.read_byte(regs.hl()); self.alu_sub(value, true); 2 },
         // SUB A
         0x97 => { self.alu_sub(regs.a, false); 1 },
+        // SBC A
+        0x9f => { self.alu_sub(regs.a, true); 1 },
         // XOR
         0xaf => { self.alu_xor(regs.a); 1 },
         // POP BC
@@ -330,6 +346,8 @@ impl Cpu {
         0xd5 => { self.stack_push(regs.de()); 3 },
         // SUB #
         0xd6 => { let value = self.fetch_byte(); self.alu_sub(value, false); 2 },
+        // SUC #
+        0xde => { let value = self.fetch_byte(); self.alu_sub(value, true); 2 },
         // LDH (n),a
         0xe0 => { let byte = self.fetch_byte() as u16; self.interconnect.write_byte(0xff00 + byte as u16, regs.a); 3 },
         // POP HL
