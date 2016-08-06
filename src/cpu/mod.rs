@@ -83,6 +83,8 @@ impl Cpu {
         0x01 => { let word = self.fetch_word(); self.regs.set_bc(word); 3 },
         // LD (BC),A
         0x02 => { self.interconnect.write_byte(regs.bc(), regs.a); 2 },
+        // INC BC
+        0x03 => { self.regs.set_bc(regs.bc().wrapping_add(1)); 2 },
         // INC B
         0x04 => { self.regs.b = self.alu_inc(regs.b); 1 }
         // DEC B
@@ -105,6 +107,8 @@ impl Cpu {
         0x0d => { self.regs.c = self.alu_dec(regs.c); 1 },
         // LD (DE),A
         0x12 => { self.interconnect.write_byte(regs.de(), regs.a); 2 },
+        // INC DE
+        0x13 => { self.regs.set_de(regs.de().wrapping_add(1)); 2 },
         // INC D
         0x14 => { self.regs.d = self.alu_inc(regs.d); 1 }
         // DEC D
@@ -127,6 +131,8 @@ impl Cpu {
         0x21 => { let word = self.fetch_word(); self.regs.set_hl(word); 3 },
         // LD (HLI),A
         0x22 => { self.interconnect.write_byte(self.regs.hli(), regs.a); 2 },
+        // INC HL
+        0x23 => { self.regs.set_hl(regs.hl().wrapping_add(1)); 2 },
         // INC H
         0x24 => { self.regs.h = self.alu_inc(regs.h); 1 }
         // DEC H
@@ -160,6 +166,8 @@ impl Cpu {
         0x31 => { let word = self.fetch_word(); self.regs.set_sp(word); 3 },
         // LD (HLD)
         0x32 => { self.interconnect.write_byte(self.regs.hld(), regs.a); 2 },
+        // INC SP
+        0x33 => { self.regs.sp = regs.sp.wrapping_add(1); 2 },
         // INC (HL)
         0x34 => { let mut value = self.interconnect.read_byte(regs.hl()); value = self.alu_inc(value); self.interconnect.write_byte(regs.hl(), value); 3 }
         // DEC (HL)
