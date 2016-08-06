@@ -296,6 +296,22 @@ impl Cpu {
         0x8e => { let value = self.interconnect.read_byte(regs.hl()); self.alu_add(value, true); 2 },
         // ADC A,A
         0x8f => { self.alu_add(regs.a, true); 1 },
+        // SUB B
+        0x90 => { self.alu_sub(regs.b, false); 1 },
+        // SUB C
+        0x91 => { self.alu_sub(regs.c, false); 1 },
+        // SUB D
+        0x92 => { self.alu_sub(regs.d, false); 1 },
+        // SUB E
+        0x93 => { self.alu_sub(regs.e, false); 1 },
+        // SUB H
+        0x94 => { self.alu_sub(regs.h, false); 1 },
+        // SUB L
+        0x95 => { self.alu_sub(regs.l, false); 1 },
+        // SUB (HL)
+        0x96 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_sub(value, false); 2 },
+        // SUB A
+        0x97 => { self.alu_sub(regs.a, false); 1 },
         // XOR
         0xaf => { self.alu_xor(regs.a); 1 },
         // POP BC
@@ -312,6 +328,8 @@ impl Cpu {
         0xd1 => { let value = self.stack_pop(); self.regs.set_de(value); 3 },
         // PUSH DE
         0xd5 => { self.stack_push(regs.de()); 3 },
+        // SUB #
+        0xd6 => { let value = self.fetch_byte(); self.alu_sub(value, false); 2 },
         // LDH (n),a
         0xe0 => { let byte = self.fetch_byte() as u16; self.interconnect.write_byte(0xff00 + byte as u16, regs.a); 3 },
         // POP HL
