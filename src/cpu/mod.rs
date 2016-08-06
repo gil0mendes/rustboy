@@ -328,6 +328,22 @@ impl Cpu {
         0x97 => { self.alu_sub(regs.a, false); 1 },
         // SBC A
         0x9f => { self.alu_sub(regs.a, true); 1 },
+        // AND B
+        0xa0 => { self.alu_and(regs.b); 1 },
+        // AND C
+        0xa1 => { self.alu_and(regs.c); 1 },
+        // AND D
+        0xa2 => { self.alu_and(regs.d); 1 },
+        // AND E
+        0xa3 => { self.alu_and(regs.e); 1 },
+        // AND H
+        0xa4 => { self.alu_and(regs.h); 1 },
+        // AND L
+        0xa5 => { self.alu_and(regs.l); 1 },
+        // AND (HL)
+        0xa6 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_and(value); 1 },
+        // AND A
+        0xa7 => { self.alu_and(regs.a); 1 },
         // XOR
         0xaf => { self.alu_xor(regs.a); 1 },
         // POP BC
@@ -356,6 +372,8 @@ impl Cpu {
         0xe2 => { self.interconnect.write_byte(0xff00 + regs.c as u16, regs.a); 2 },
         // PUSH hl
         0xe5 => { self.stack_push(regs.hl()); 3 },
+        // AND #
+        0xe6 => { let value = self.fetch_byte(); self.alu_and(value); 1 },
         // LD (nn),A
         0xea => { let word = self.fetch_word(); self.interconnect.write_byte(word, regs.a); 3 },
         // LDH A,(n)
@@ -376,6 +394,21 @@ impl Cpu {
         0xfe => { let byte = self.fetch_byte(); self.alu_cp(byte); 2 },
         _ => { panic!("Unrecognized opcode: {:#x}", opcode); },
       }
+  }
+
+  /// make a logical and with the reg A
+  fn alu_and(&mut self, value: u8) {
+    // make the logical and operation
+    let result = self.regs.a & value;
+
+    // update reg A value
+    self.regs.a = result;
+
+    // update CPU flags
+    self.regs.set_flag(Flags::Z, result == 0);
+    self.regs.set_flag(Flags::N, false);
+    self.regs.set_flag(Flags::H, true);
+    self.regs.set_flag(Flags::C, false);
   }
 
   fn alu_add16imm(&mut self, sp: u16) -> u16 {
