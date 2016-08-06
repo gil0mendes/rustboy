@@ -56,6 +56,19 @@ impl Cpu {
     }
   }
 
+  /// push a value to stack
+  fn stack_push(&mut self, value: u16) {
+      self.interconnect.write_word(self.regs.sp, value);
+      self.regs.sp -= 2
+  }
+
+  /// pop a value from stack
+  fn stack_pop(&mut self) -> u16 {
+      let value = self.interconnect.read_word(self.regs.sp);
+      self.regs.sp += 2;
+      value
+  }
+
   fn process_next_insctruction(&mut self) -> u8 {
     // fetch a byte from the PC address
       let opcode = self.fetch_byte();
@@ -70,6 +83,8 @@ impl Cpu {
         0x01 => { let word = self.fetch_word(); self.regs.set_bc(word); 3 },
         // LD (BC),A
         0x02 => { self.interconnect.write_byte(regs.bc(), regs.a); 2 },
+        // LD (nn),SP
+        0x08 => { let word = self.fetch_word(); self.interconnect.write_word(word, regs.sp); 5},
         // LD B,n
         0x06 => { self.regs.b = self.fetch_byte(); 2 },
         // LD DE,nn
@@ -249,45 +264,96 @@ impl Cpu {
         0x7e => { self.regs.a = self.interconnect.read_byte(regs.hl()); 2 }
         // LD A,A
         0x7f => { 1 },
+        // ADD A,B
+        0x80 => { self.alu_add(regs.b, false); 1 },
+        // ADD A,C
+        0x81 => { self.alu_add(regs.c, false); 1 },
+        // ADD A,D
+        0x82 => { self.alu_add(regs.d, false); 1 },
+        // ADD A,E
+        0x83 => { self.alu_add(regs.e, false); 1 },
+        // ADD A,H
+        0x84 => { self.alu_add(regs.h, false); 1 },
+        // ADD A,L
+        0x85 => { self.alu_add(regs.l, false); 1 },
+        // ADD A,(HL)
+        0x86 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_add(value, true); 2 },
+        // ADD A,A
+        0x87 => { self.alu_add(regs.a, false); 1 },
         // XOR
         0xaf => { self.alu_xor(regs.a); 1 },
+        // POP BC
+        0xc1 => { let value = self.stack_pop(); self.regs.set_bc(value); 3 },
         // JP nn
         0xc3 => { self.regs.pc = self.fetch_word(); 3 },
+        // PUSH BC
+        0xc5 => { self.stack_push(regs.bc()); 3 },
+        // ADD A,#
+        0xc6 => { let value = self.fetch_byte(); self.alu_add(value, false); 2 },
+        // POP DE
+        0xd1 => { let value = self.stack_pop(); self.regs.set_de(value); 3 },
+        // PUSH DE
+        0xd5 => { self.stack_push(regs.de()); 3 },
         // LDH (n),a
         0xe0 => { let byte = self.fetch_byte() as u16; self.interconnect.write_byte(0xff00 + byte as u16, regs.a); 3 },
+        // POP HL
+        0xe1 => { let value = self.stack_pop(); self.regs.set_hl(value); 3 },
         // LD (0xff00+C),A
         0xe2 => { self.interconnect.write_byte(0xff00 + regs.c as u16, regs.a); 2 },
+        // PUSH hl
+        0xe5 => { self.stack_push(regs.hl()); 3 },
         // LD (nn),A
         0xea => { let word = self.fetch_word(); self.interconnect.write_byte(word, regs.a); 3 },
         // LDH A,(n)
         0xf0 => { let byte = self.fetch_byte(); self.regs.a = self.interconnect.read_byte(0xff00 + byte as u16); 3 },
+        // POP AF
+        0xf1 => { let value = self.stack_pop(); self.regs.set_af(value); 3 },
         // LD A,(0xff00+C)
         0xf2 => { let byte = self.interconnect.read_byte(0xff00 + regs.c as u16); self.regs.a = byte; 2 },
+        // PUSH AF
+        0xf5 => { self.stack_push(regs.af()); 4 },
         // LDHL SP,n
-        // TODO: find more information about this opcode
-        0xf8 => { 
-          let addr = regs.sp() + self.fetch_byte() as u16;
-          self.regs.set_hl(addr);
-          self.regs.set_flag(Flags::Z, false);
-          self.regs.set_flag(Flags::N, false);
-
-        },
+        0xf8 => { let result = self.alu_add16imm(regs.sp); self.regs.set_hl(result); 2 },
         // LD SP,HL
         0xf9 => { self.regs.set_sp(regs.hl()); 2 },
         // LD A,(nn)
         0xfa => { let word = self.fetch_word(); self.regs.a = self.interconnect.read_byte(word); 3 },
         // CP n
-        0xfe => {
-          // gets n
-          let byte = self.fetch_byte();
-
-          // make the logic calculation
-          self.alu_cp(byte);
-
-          2
-        },
+        0xfe => { let byte = self.fetch_byte(); self.alu_cp(byte); 2 },
         _ => { panic!("Unrecognized opcode: {:#x}", opcode); },
       }
+  }
+
+  fn alu_add16imm(&mut self, sp: u16) -> u16 {
+    let byte = self.fetch_byte() as i8 as u16;
+    
+    self.regs.set_flag(Flags::Z, false);
+    self.regs.set_flag(Flags::N, false);
+    self.regs.set_flag(Flags::H, byte & 0x000f > 0x000f);
+    self.regs.set_flag(Flags::C, byte & 0x00ff > 0x00ff);
+
+    sp.wrapping_add(byte)
+  }
+
+  /// add a value to reg A
+  fn alu_add(&mut self, value: u8, usec: bool) {
+    // get carry (if is to use)
+    let carry = if usec && self.regs.flag(Flags::C) { 1 } else { 0 };
+    
+    // get reg a value
+    let a = self.regs.a;
+
+    // compute the new value
+    let result = a.wrapping_add(value).wrapping_add(carry);
+
+    // update reg A value
+    self.regs.a = result;
+
+    // update CPU flags
+    self.regs.set_flag(Flags::Z, result == 0);
+    self.regs.set_flag(Flags::N, false);
+    self.regs.set_flag(Flags::H, (a & 0xf) + (value & 0xf) + carry > 0xf);
+    self.regs.set_flag(Flags::C, (a as u16) + (value as u16) + (carry as u16) > 0xff);
   }
 
   fn alu_sub(&mut self, byte: u8, usec: bool) {
