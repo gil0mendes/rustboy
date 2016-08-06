@@ -7,7 +7,7 @@ pub struct Interconnect {
   /// Internal RAM
   hram: Vec<u8>,
   /// Interrupt Enable Register
-  inte: u8
+  pub inte: u8
 }
 
 impl Interconnect {

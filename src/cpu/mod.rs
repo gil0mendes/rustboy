@@ -13,7 +13,13 @@ pub struct Cpu {
   /// Interconnect
   interconnect: Interconnect,
   /// CPU halted flag
-  halted: bool
+  halted: bool,
+  // interrupts are enabled?
+  ime: bool,
+  // is to disable interrupts
+  setdi: u8,
+  // is to enabled interrupts
+  setei: u8
 }
 
 impl Cpu {
@@ -23,7 +29,10 @@ impl Cpu {
     Cpu {
       regs: Registers::new(),
       halted: false,
-      interconnect: inter
+      interconnect: inter,
+      ime: false,
+      setdi: 0,
+      setei: 0
     }
   }
 
@@ -35,21 +44,42 @@ impl Cpu {
     }
   }
 
+  /// fetch one byte from the interconnect using PC
   fn fetch_byte(&mut self) -> u8 {
     let byte = self.interconnect.read_byte(self.regs.pc);
     self.regs.pc += 1;
     byte
   }
 
+  /// fetch one word from the interconnect using PC
   fn fetch_word(&mut self) -> u16 {
     let word = self.interconnect.read_word(self.regs.pc);
     self.regs.pc += 2;
     word
   }
 
+  /// update IME (Interrupt Master Enable) if needed
+  fn updateIme(&mut self) {
+    self.setdi = match self.setdi {
+        2 => 1,
+        1 => { self.ime = false; 0 },
+        _ => 0
+    };
+
+    self.setei = match self.setei {
+        2 => 1,
+        1 => { self.ime = true; 0 },
+        _ => 0
+    }
+  }
+
+  /// start the CPU
   pub fn run(&mut self) {
     loop {
       println!("{:?}", self.regs);
+
+      // update IME if needed
+      self.updateIme();
 
       // process the next instruction
       let ticks = self.process_next_insctruction();
@@ -486,6 +516,8 @@ impl Cpu {
         0xf1 => { let value = self.stack_pop(); self.regs.set_af(value); 3 },
         // LD A,(0xff00+C)
         0xf2 => { let byte = self.interconnect.read_byte(0xff00 + regs.c as u16); self.regs.a = byte; 2 },
+        // DI
+        0xf3 => { self.setdi = 2; 1 },
         // PUSH AF
         0xf5 => { self.stack_push(regs.af()); 4 },
         // OR #
@@ -496,6 +528,8 @@ impl Cpu {
         0xf9 => { self.regs.set_sp(regs.hl()); 2 },
         // LD A,(nn)
         0xfa => { let word = self.fetch_word(); self.regs.a = self.interconnect.read_byte(word); 3 },
+        // EI
+        0xfb => { self.setei = 2; 1 },
         // CP n
         0xfe => { let byte = self.fetch_byte(); self.alu_cp(byte); 2 },
         _ => { panic!("Unrecognized opcode: {:#x}", opcode); },
