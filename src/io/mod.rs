@@ -1,8 +1,10 @@
 use self::gpu::GPU;
 use self::timer::Timer;
+use self::sound::Sound;
 
 mod gpu;
 mod timer;
+mod sound;
 
 #[derive(Debug)]
 pub struct Interconnect {
@@ -20,6 +22,8 @@ pub struct Interconnect {
   gpu: GPU,
   // Timer
   timer: Timer,
+  // Sound
+  sound: Sound,
 }
 
 impl Interconnect {
@@ -31,7 +35,8 @@ impl Interconnect {
       inte: 0x00,
       wram: vec![0x20; 0x2000],
       gpu: GPU::new(),
-      timer: Timer::new()
+      timer: Timer::new(),
+      sound: Sound::new()
     }
   }
 
@@ -122,6 +127,8 @@ impl Interconnect {
       0xd000 ... 0xdfff => self.wram[address as usize & 0x0fff] = value,
       // Timer
       0xff04 ... 0xff07 => self.timer.write_byte(address, value),
+      // Sound
+      0xff10 ... 0xff3f => self.sound.write_byte(address, value),
       // GPU
       0xff40 ... 0xff4b => self.gpu.write_byte(address, value),
       // High RAM
