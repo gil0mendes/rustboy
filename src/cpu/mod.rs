@@ -376,6 +376,22 @@ impl Cpu {
         0xb6 => { let value = self.interconnect.read_byte(regs.hl()); self.alu_or(value); 2 },
         // OR A
         0xb7 => { self.alu_or(regs.a); 1 },
+        // CP B
+        0xb8 => { self.alu_cp(regs.a); 1 },
+        // CP C
+        0xb9 => { self.alu_cp(regs.c); 1 },
+        // CP D
+        0xba => { self.alu_cp(regs.d); 1 },
+        // CP E
+        0xbb => { self.alu_cp(regs.e); 1 },
+        // CP H
+        0xbc => { self.alu_cp(regs.h); 1 },
+        // CP L
+        0xbd => { self.alu_cp(regs.l); 1 },
+        // CP (HL)
+        0xbe => { let value = self.interconnect.read_byte(regs.hl()); self.alu_cp(value); 1 },
+        // CP A
+        0xbf => { self.alu_cp(regs.a); 1 },
         // POP BC
         0xc1 => { let value = self.stack_pop(); self.regs.set_bc(value); 3 },
         // JP nn
@@ -508,9 +524,15 @@ impl Cpu {
     self.regs.a = result;
   }
 
+  /// make a compare of A with byte
   fn alu_cp(&mut self, byte: u8) {
+    // get current reg A value
     let old_a = self.regs.a;
+
+    // make a subtraction
     self.alu_sub(byte, false);
+
+    // reset the A value to the old one
     self.regs.a = old_a;
   }
 
