@@ -491,11 +491,11 @@ impl Cpu {
         // SUC #
         0xde => { let value = self.fetch_byte(); self.alu_sub(value, true); 2 },
         // LDH (n),a
-        0xe0 => { let byte = self.fetch_byte() as u16; self.interconnect.write_byte(0xff00 + byte as u16, regs.a); 3 },
+        0xe0 => { let byte = self.fetch_byte() as u16; self.interconnect.write_byte(0xff00 + byte, regs.a); 3 },
         // POP HL
         0xe1 => { let value = self.stack_pop(); self.regs.set_hl(value); 3 },
         // LD (0xff00+C),A
-        0xe2 => { self.interconnect.write_byte(0xff00 + regs.c as u16, regs.a); 2 },
+        0xe2 => { self.interconnect.write_byte(0xff00 | regs.c as u16, regs.a); 2 },
         // PUSH hl
         0xe5 => { self.stack_push(regs.hl()); 3 },
         // AND #
@@ -507,11 +507,11 @@ impl Cpu {
         // AND #
         0xee => { let value = self.fetch_byte(); self.alu_and(value); 2 },
         // LDH A,(n)
-        0xf0 => { let byte = self.fetch_byte(); self.regs.a = self.interconnect.read_byte(0xff00 + byte as u16); 3 },
+        0xf0 => { let address = 0xff00 | self.fetch_byte() as u16; self.regs.a = self.interconnect.read_byte(address); 3 },
         // POP AF
         0xf1 => { let value = self.stack_pop(); self.regs.set_af(value); 3 },
         // LD A,(0xff00+C)
-        0xf2 => { let byte = self.interconnect.read_byte(0xff00 + regs.c as u16); self.regs.a = byte; 2 },
+        0xf2 => { self.regs.a = self.interconnect.read_byte(0xff00 | regs.c as u16); 2 },
         // DI
         0xf3 => { self.setdi = 2; 1 },
         // PUSH AF
