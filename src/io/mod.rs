@@ -3,6 +3,7 @@ use self::timer::Timer;
 use self::sound::Sound;
 use self::serial::Serial;
 
+mod map;
 mod gpu;
 mod timer;
 mod sound;
