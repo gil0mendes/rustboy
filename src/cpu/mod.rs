@@ -76,17 +76,42 @@ impl Cpu {
   /// start the CPU
   pub fn run(&mut self) {
     loop {
+      // TODO: remove this when implement the GDB
       println!("{:?}", self.regs);
 
-      // update IME if needed
-      self.updateIme();
-
       // process the next instruction
-      let cycles = (self.process_next_insctruction() * 4) as u32;
+      let cycles = self.do_internal_cycle() * 4 as u32;
 
       // do the interconnect cycle
       self.interconnect.do_cycle(cycles);
     }
+  }
+
+  /// do the internal CPU cycle
+  fn do_internal_cycle(&mut self) -> u32 {
+      // update IME if needed
+      self.updateIme();
+
+      // check if some interrupt needs to be handled.
+      // if a interrupt was handled return with the 
+      // number of ticks
+      match self.handle_interrupt() {
+        // no interrupt handled
+        0 => { },
+
+        // a interrupt was handled, return the number 
+        // of ticks
+        t => return t,
+      }
+
+      // only process instructions if the CPU is not 
+      // halted
+      if self.halted {
+        // emulate an nop instruction
+        1
+      } else {
+        self.process_next_instruction() as u32
+      }
   }
 
   /// push a value to stack
@@ -102,7 +127,39 @@ impl Cpu {
       value
   }
 
-  fn process_next_insctruction(&mut self) -> u8 {
+  /// handle the interrupts
+  fn handle_interrupt(&mut self) -> u32 {
+    // check if the interrupts are enabled
+    if self.ime == false && self.halted == false { return 0 }
+
+    // check if some interrupt are been fired
+    let triggered = self.interconnect.inte & self.interconnect.intf;
+    if triggered == 0 { return 0 }
+
+    self.halted = false;
+    if self.ime == false { return 0 }
+    self.ime = false;
+
+    // valid the interrupt
+    let n = triggered.trailing_zeros();
+    if n >= 5 { panic!("Invalid interrupt triggered"); }
+    
+    // clean up the interrupt
+    self.interconnect.intf &= !(1 << n);
+
+    // save the current program pointer
+    let pc = self.regs.pc;
+    self.stack_push(pc);
+
+    // change the PC value to the interrupt location
+    // handler
+    self.regs.pc = 0x0040 | ((n as u16) << 3);
+
+    // number of tickets
+    4
+  }
+
+  fn process_next_instruction(&mut self) -> u8 {
     // fetch a byte from the PC address
       let opcode = self.fetch_byte();
 
