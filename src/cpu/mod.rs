@@ -1,12 +1,12 @@
 //! Game Boy CPU emulation
 
-use self::registers::{Registers, Flags};
 use super::io::Interconnect;
+use self::registers::Registers;
+use std::fmt::{Debug, Formatter, Error};
 
 mod registers;
 
 /// CPU state
-#[derive(Debug)]
 pub struct Cpu { 
   /// CPU registers
   regs: Registers,
@@ -77,7 +77,7 @@ impl Cpu {
   pub fn run(&mut self) {
     loop {
       // TODO: remove this when implement the GDB
-      println!("{:?}", self.regs);
+      println!("{:?}", self);
 
       // process the next instruction
       let cycles = self.do_internal_cycle() * 4 as u32;
@@ -222,7 +222,7 @@ impl Cpu {
         // LD E,n
         0x1e => { self.regs.e = self.fetch_byte(); 2 },
         // HR NZ,n
-        0x20 => { if !self.regs.flag(Flags::Z) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
+        0x20 => { if !self.regs.flags.z { panic!("1"); self.cpu_jr(); 3 } else { panic!("2"); self.regs.pc += 1; 2 } },
         // LD HL,nn
         0x21 => { let word = self.fetch_word(); self.regs.set_hl(word); 3 },
         // LD (HLI),A
@@ -236,7 +236,7 @@ impl Cpu {
         // LD H,n
         0x26 => { self.regs.h = self.fetch_byte(); 2 },
         // JR cc,n
-        0x28 => { if self.regs.flag(Flags::Z) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
+        0x28 => { if self.regs.flags.z { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // ADD HL, HL
         0x29 => { self.alu_add16(regs.hl()); 2 },
         // LDI A,(HL)
@@ -248,7 +248,7 @@ impl Cpu {
         // LD L,n
         0x2e => { self.regs.l = self.fetch_byte(); 2 },
         // JR NC,n
-        0x30 => { if !self.regs.flag(Flags::C) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
+        0x30 => { if !self.regs.flags.c { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // LD SP,nn
         0x31 => { let word = self.fetch_word(); self.regs.set_sp(word); 3 },
         // LD (HLD)
@@ -262,7 +262,7 @@ impl Cpu {
         // LD (HL),n
         0x36 => { let byte = self.fetch_byte(); self.interconnect.write_byte(regs.hl(), byte); 3 },
         // JR C,n
-        0x38 => { if self.regs.flag(Flags::C) { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
+        0x38 => { if self.regs.flags.c { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // ADD HL, SP
         0x39 => { self.alu_add16(regs.sp); 2 },
         // LD A,(HLD)
@@ -595,9 +595,9 @@ impl Cpu {
     let result = value.wrapping_sub(1);
 
     // update CPU flags
-    self.regs.set_flag(Flags::Z, result == 0);
-    self.regs.set_flag(Flags::N, true);
-    self.regs.set_flag(Flags::H, (value & 0x0f) == 0);
+    self.regs.flags.z = result == 0;
+    self.regs.flags.n = true;
+    self.regs.flags.h = (value & 0x0f) == 0;
 
     // return the result
     result
@@ -609,9 +609,9 @@ impl Cpu {
     let result = value.wrapping_add(1);
 
     // update CPU flags
-    self.regs.set_flag(Flags::Z, result == 0);
-    self.regs.set_flag(Flags::N, false);
-    self.regs.set_flag(Flags::H, (value & 0xf) + 1 > 0xf);
+    self.regs.flags.z = result == 0;
+    self.regs.flags.n = false;
+    self.regs.flags.h = (value & 0xf) + 1 > 0xf;
 
     // return the result
     result
@@ -625,10 +625,10 @@ impl Cpu {
     self.regs.a = result;
 
     // update CPU flags
-    self.regs.set_flag(Flags::Z, result == 0);
-    self.regs.set_flag(Flags::N, false);
-    self.regs.set_flag(Flags::H, false);
-    self.regs.set_flag(Flags::C, false);
+    self.regs.flags.z = result == 0;
+    self.regs.flags.n = false;
+    self.regs.flags.h = false;
+    self.regs.flags.c = false;
   }
 
   /// make a logical and with the reg A
@@ -640,10 +640,10 @@ impl Cpu {
     self.regs.a = result;
 
     // update CPU flags
-    self.regs.set_flag(Flags::Z, result == 0);
-    self.regs.set_flag(Flags::N, false);
-    self.regs.set_flag(Flags::H, true);
-    self.regs.set_flag(Flags::C, false);
+    self.regs.flags.z = result == 0;
+    self.regs.flags.n = false;
+    self.regs.flags.h = true;
+    self.regs.flags.c = false;
   }
 
   /// add immediate to sp and update CPU flags
@@ -652,10 +652,10 @@ impl Cpu {
     let byte = self.fetch_byte() as i8 as u16;
     
     // update the CPU flags
-    self.regs.set_flag(Flags::Z, false);
-    self.regs.set_flag(Flags::N, false);
-    self.regs.set_flag(Flags::H, byte & 0x000f > 0x000f);
-    self.regs.set_flag(Flags::C, byte & 0x00ff > 0x00ff);
+    self.regs.flags.z = false;
+    self.regs.flags.n = false;
+    self.regs.flags.h = byte & 0x000f > 0x000f;
+    self.regs.flags.c = byte & 0x00ff > 0x00ff;
 
     // compute the addiction and return it
     sp.wrapping_add(byte)
@@ -670,15 +670,15 @@ impl Cpu {
     self.regs.set_hl(result);
 
     // update CPU flags
-    self.regs.set_flag(Flags::N, false);
-    self.regs.set_flag(Flags::H, (result & 0xfff) + (value & 0xfff) > 0xfff);
-    self.regs.set_flag(Flags::C, result > 0xffff - value);
+    self.regs.flags.n = false;
+    self.regs.flags.h = (result & 0xfff) + (value & 0xfff) > 0xfff;
+    self.regs.flags.c = result > 0xffff - value;
   }
 
   /// add a value to reg A
   fn alu_add(&mut self, value: u8, usec: bool) {
     // get carry (if is to use)
-    let carry = if usec && self.regs.flag(Flags::C) { 1 } else { 0 };
+    let carry = if usec && self.regs.flags.c { 1 } else { 0 };
     
     // get reg a value
     let a = self.regs.a;
@@ -690,16 +690,16 @@ impl Cpu {
     self.regs.a = result;
 
     // update CPU flags
-    self.regs.set_flag(Flags::Z, result == 0);
-    self.regs.set_flag(Flags::N, false);
-    self.regs.set_flag(Flags::H, (a & 0xf) + (value & 0xf) + carry > 0xf);
-    self.regs.set_flag(Flags::C, (a as u16) + (value as u16) + (carry as u16) > 0xff);
+    self.regs.flags.z = result == 0;
+    self.regs.flags.n = false;
+    self.regs.flags.h = (a & 0xf) + (value & 0xf) + carry > 0xf;
+    self.regs.flags.c = (a as u16) + (value as u16) + (carry as u16) > 0xff;
   }
 
   /// perform a subtraction
   fn alu_sub(&mut self, byte: u8, usec: bool) {
     // get carry
-    let c = if usec && self.regs.flag(Flags::C) { 1 } else { 0 };
+    let c = if usec && self.regs.flags.c { 1 } else { 0 };
 
     // get reg A value
     let a = self.regs.a;
@@ -711,10 +711,10 @@ impl Cpu {
     self.regs.a = result;
 
     // update CPU flags
-    self.regs.set_flag(Flags::Z, result == 0);
-    self.regs.set_flag(Flags::N, true);
-    self.regs.set_flag(Flags::H, (a & 0x0f) < (byte & 0x0f) + c);
-    self.regs.set_flag(Flags::C, (a as u16) < (byte as u16) + (c as u16));
+    self.regs.flags.z = result == 0;
+    self.regs.flags.n = true;
+    self.regs.flags.h = (a & 0x0f) < (byte & 0x0f) + c;
+    self.regs.flags.c = (a as u16) < (byte as u16) + (c as u16);
   }
 
   /// make a compare of A with byte
@@ -738,10 +738,10 @@ impl Cpu {
     self.regs.a = result;
 
     // update CPU flags
-    self.regs.set_flag(Flags::Z, result == 0);
-    self.regs.set_flag(Flags::N, false);
-    self.regs.set_flag(Flags::H, false);
-    self.regs.set_flag(Flags::C, false);
+    self.regs.flags.z = result == 0;
+    self.regs.flags.n = false;
+    self.regs.flags.h = false;
+    self.regs.flags.c = false;
   }
 
   /// process the relative jump
@@ -751,5 +751,63 @@ impl Cpu {
 
     // compute the new PC address
     self.regs.pc = ((self.regs.pc as u32 as i32) + (n as i32)) as u16;
+  }
+}
+
+impl Debug for Cpu {
+  fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    // --- Print Registers
+    writeln!(f, "Registers");
+
+    // Program Counter
+    writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} ...]", 
+        self.regs.pc,
+        self.interconnect.read_byte(self.regs.pc),
+        self.interconnect.read_byte(self.regs.pc + 1));
+
+    // Stack pointer
+    writeln!(f, "  sp: 0x{:04x} [{:02X} {:02X} ...]", 
+        self.regs.sp,
+        self.interconnect.read_byte(self.regs.sp),
+        self.interconnect.read_byte(self.regs.sp + 1));
+
+    // registers
+    writeln!(f, "  af: 0x{:04x}    a: {:3}    f: {:3}",
+        self.regs.af(),
+        self.regs.a,
+        self.regs.f());
+
+    writeln!(f, "  bc: 0x{:04x}    b: {:3}    c: {:3}",
+        self.regs.bc(),
+        self.regs.b,
+        self.regs.c);
+
+    writeln!(f, "  de: 0x{:04x}    d: {:3}    e: {:3}",
+        self.regs.de(),
+        self.regs.d,
+        self.regs.e);
+
+    writeln!(f, "  hl: 0x{:04x}    h: {:3}    l: {:3}    \
+            [hl]: [{:02X} {:02X} ...]",
+        self.regs.hl(),
+        self.regs.h, 
+        self.regs.l,
+        self.interconnect.read_byte(self.regs.hl()),
+        self.interconnect.read_byte(self.regs.hl() + 1));
+
+    // --- Flags
+    writeln!(f, "Flags:");
+
+    writeln!(f, "  z: {}  n: {}  h: {}  c: {}",
+        self.regs.flags.z as u8,
+        self.regs.flags.n as u8,
+        self.regs.flags.h as u8,
+        self.regs.flags.c as u8);
+
+    // CPU State
+    writeln!(f, "  ime: {}   halted: {}", self.ime, self.halted);
+
+    // finish print
+    Ok(())
   }
 }

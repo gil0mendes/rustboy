@@ -1,20 +1,20 @@
 //! Game Boy CPU Registers emulation
 
 /// CPU flags
-#[derive(Debug)]
-pub enum Flags {
-  /// Zero FLag: set if the result of a match operation is 
-  /// zero or two values compare equal
-  Z = 0x10000000,
-  /// Subtract Flag: set if the last math operation performed 
-  /// a subtraction
-  N = 0x01000000,
-  /// Half Carry Flag: set if a carry occurred from the lower 
-  /// nibble in the last math operation
-  H = 0x00100000,
+#[derive(Debug,Copy,Clone)]
+pub struct Flags {
   /// Carry Flag: set if a carry occured during the last math 
   /// operation or if the first operand register compared smaller.
-  C = 0x00010000,
+  pub c: bool,
+  /// Half Carry Flag: set if a carry occurred from the lower 
+  /// nibble in the last math operation
+  pub h: bool,
+  /// Subtract Flag: set if the last math operation performed 
+  /// a subtraction
+  pub n: bool,
+  /// Zero FLag: set if the result of a match operation is 
+  /// zero or two values compare equal
+  pub z: bool,
 }
 
 /// CPU registers. They're 16 bit wide but some of them can 
@@ -31,8 +31,6 @@ pub struct Registers {
   pub d: u8,
   /// 8-bit `E` register
   pub e: u8,
-  /// 8-bit `F` register (flags)
-  f: u8,
   /// 8-bit `H` register
   pub h: u8,
   /// 8-bit `L` register
@@ -41,24 +39,37 @@ pub struct Registers {
   pub sp: u16,
   /// 16-bit (program counter)
   pub pc: u16,
+  /// CPU Flags
+  pub flags: Flags,
 }
 
 impl Registers {
   /// create a new Registers instance and set the regs for 
   /// initial values after the internal ROM execute
   pub fn new() -> Registers {
-    Registers {
+    let mut instance = Registers {
       a: 0x01,
       b: 0x00,
       c: 0x13,
       d: 0x00,
       e: 0xd8,
-      f: 0xb0,
       h: 0x01,
       l: 0x4d,
       sp: 0xfffe,
       pc: 0x100,
-    }
+      flags: Flags {
+        c: false,
+        h: false,
+        n: false,
+        z: false
+      }
+    };
+
+    // get value for f register
+    instance.set_f(0xb0);
+
+    // return instance
+    instance
   }
 
   /// create a new Register instance for GBC and set the 
@@ -74,7 +85,7 @@ impl Registers {
 
   /// Gets the af register value
   pub fn af(&self) -> u16 {
-    ((self.a as u16) << 8) | ((self.f as u16) & 0xf0)
+    ((self.a as u16) << 8) | ((self.f() as u16) & 0xf0)
   }
 
   /// Gets the bc register value
@@ -106,6 +117,16 @@ impl Registers {
     word
   }
 
+  /// get value of f
+  pub fn f(&self) -> u8 {
+    let z = self.flags.z as u8;
+    let n = self.flags.n as u8;
+    let h = self.flags.h as u8;
+    let c = self.flags.c as u8;
+
+    (z << 7) | (n << 6) | ( h << 5) | (c << 4)
+  }
+
   // -------------------------------------------------------------------- [Sets]
 
   /// sets the af register value
@@ -114,7 +135,9 @@ impl Registers {
   /// * `value` u8 - value 
   pub fn set_af(&mut self, value: u16) {
     self.a = (value >> 8) as u8;
-    self.f = (value & 0x00ff) as u8;
+
+    // set f register
+    self.set_f(value as u8);
   }
 
   /// sets the bc register value
@@ -157,34 +180,9 @@ impl Registers {
   /// # Arguments
   /// * `value` u8 - value 
   pub fn set_f(&mut self, value: u8) {
-    self.f = value & 0xf0;
-  }
-
-  // -------------------------------------------------------------------- [Flag]
-
-  /// get flags state
-  ///
-  /// # Arguments
-  /// * `flags` Flags - flags to read
-  pub fn flag(&self, flags: Flags) -> bool {
-    let mask = flags as u8;
-    self.f & mask > 0
-  }
-
-  /// set the flags state
-  ///
-  /// # Arguments
-  /// * `flags` Flags - flags to set
-  /// * `set` bool       - if true active the flag
-  pub fn set_flag(&mut self, flags: Flags, set: bool) {
-    let mask = flags as u8;
-
-
-    match set {
-      true => self.f |= mask,
-      false => self.f &= !mask,
-    }
-
-    self.f &= 0xf0;
+    self.flags.z = (value & (1 << 7)) != 0;
+    self.flags.n = (value & (1 << 6)) != 0;
+    self.flags.h = (value & (1 << 5)) != 0;
+    self.flags.c = (value & (1 << 4)) != 0;
   }
 }

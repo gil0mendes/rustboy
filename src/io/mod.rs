@@ -116,6 +116,8 @@ impl Interconnect {
       0xff40 ... 0xff4b => self.gpu.read_byte(address),
       // Infrared (Implementation don't needed)
       0xff56 => { 0 },
+      // High RAM
+      0xff80 ... 0xfffe => self.hram[address as usize & 0x007f],
       // IE (Interrupt Enable)
       0xffff => self.inte,
       // invalid address
