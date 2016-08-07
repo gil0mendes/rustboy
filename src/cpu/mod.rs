@@ -222,7 +222,7 @@ impl Cpu {
         // LD E,n
         0x1e => { self.regs.e = self.fetch_byte(); 2 },
         // HR NZ,n
-        0x20 => { if !self.regs.flags.z { panic!("1"); self.cpu_jr(); 3 } else { panic!("2"); self.regs.pc += 1; 2 } },
+        0x20 => { if !self.regs.flags.z { self.cpu_jr(); 3 } else { self.regs.pc += 1; 2 } },
         // LD HL,nn
         0x21 => { let word = self.fetch_word(); self.regs.set_hl(word); 3 },
         // LD (HLI),A
@@ -649,7 +649,7 @@ impl Cpu {
   /// add immediate to sp and update CPU flags
   fn alu_add16imm(&mut self, sp: u16) -> u16 {
     // cast byte to the correct type
-    let byte = self.fetch_byte() as i8 as u16;
+    let byte = self.fetch_byte() as i8 as i16 as u16;
     
     // update the CPU flags
     self.regs.flags.z = false;
@@ -746,14 +746,21 @@ impl Cpu {
 
   /// process the relative jump
   fn cpu_jr(&mut self) {
-    // get the next byte
-    let n = self.fetch_byte() as i8;
+    // get the offset
+    let off = self.fetch_byte() as i8;
+
+    // get program counter
+    let mut pc = self.regs.pc as i16;
 
     // compute the new PC address
-    self.regs.pc = ((self.regs.pc as u32 as i32) + (n as i32)) as u16;
+    pc = pc.wrapping_add(off as i16);
+
+    // save the new PC value
+    self.regs.pc = pc as u16;
   }
 }
 
+/// CPU Debugger
 impl Debug for Cpu {
   fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
     // --- Print Registers
