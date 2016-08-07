@@ -4,11 +4,13 @@ use std::io::Read;
 use std::path::Path;
 
 use cpu::Cpu;
+use gpu::Gpu;
 use io::Interconnect;
 use cartridge::Cartridge;
 
 mod io;
 mod cpu;
+mod gpu;
 mod cartridge;
 
 fn main() {
@@ -21,8 +23,11 @@ fn main() {
   // create cartridge
   let mut cartridge = Cartridge::new(rom_buf);
 
+  // create GPU
+  let mut gpu = Gpu::new();
+
   // create a new Interconnect instance
-  let mut interconnect = Interconnect::new(cartridge);
+  let mut interconnect = Interconnect::new(cartridge, gpu);
 
   // create a new Cpu instance
   let mut cpu = Cpu::new(interconnect);

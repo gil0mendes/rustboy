@@ -767,16 +767,18 @@ impl Debug for Cpu {
     writeln!(f, "Registers");
 
     // Program Counter
-    writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} ...]", 
+    writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02x} ...]", 
         self.regs.pc,
         self.interconnect.read_byte(self.regs.pc),
-        self.interconnect.read_byte(self.regs.pc + 1));
+        self.interconnect.read_byte(self.regs.pc.wrapping_add(1)),
+        self.interconnect.read_byte(self.regs.pc.wrapping_add(2)));
 
     // Stack pointer
-    writeln!(f, "  sp: 0x{:04x} [{:02X} {:02X} ...]", 
+    writeln!(f, "  sp: 0x{:04x} [{:02X} {:02X} {:02x} ...]", 
         self.regs.sp,
         self.interconnect.read_byte(self.regs.sp),
-        self.interconnect.read_byte(self.regs.sp + 1));
+        self.interconnect.read_byte(self.regs.sp.wrapping_add(1)),
+        self.interconnect.read_byte(self.regs.sp.wrapping_add(2)));
 
     // registers
     writeln!(f, "  af: 0x{:04x}    a: {:3}    f: {:3}",

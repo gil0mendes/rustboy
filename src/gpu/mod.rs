@@ -2,7 +2,7 @@ const VRAM_SIZE: usize = 0x2000;
 const VOAM_SIZE: usize = 0xa0;
 
 #[derive(Debug)]
-pub struct GPU {
+pub struct Gpu {
   /// LCDC (LCD Control)
   control: u8,
   /// STATE (LCDC Status)
@@ -33,11 +33,11 @@ pub struct GPU {
   vrambank: u8,
 }
 
-impl GPU {
+impl Gpu {
   
   /// create a new GPU instance
-  pub fn new() -> GPU {
-    GPU {
+  pub fn new() -> Gpu {
+    Gpu {
       control: 0,
       status: 0,
       scy: 0,

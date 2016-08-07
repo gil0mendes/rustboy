@@ -1,4 +1,4 @@
-use self::gpu::GPU;
+use gpu::Gpu;
 use self::timer::Timer;
 use self::sound::Sound;
 use self::serial::Serial;
@@ -10,7 +10,6 @@ mod map;
 mod ram;
 mod bootrom;
 
-mod gpu;
 mod timer;
 mod sound;
 mod serial;
@@ -29,7 +28,7 @@ pub struct Interconnect {
   // Work RAM (8KB)
   wram: Ram,
   // GPU
-  gpu: GPU,
+  gpu: Gpu,
   // Timer
   timer: Timer,
   // Sound
@@ -41,7 +40,7 @@ pub struct Interconnect {
 }
 
 impl Interconnect {
-  pub fn new(cartridge: Cartridge) -> Interconnect {
+  pub fn new(cartridge: Cartridge, gpu: Gpu) -> Interconnect {
     Interconnect {
       cartridge: cartridge,
       io: vec![0x20; 0x7f],
@@ -49,7 +48,7 @@ impl Interconnect {
       inte: 0,
       intf: 0,
       wram: Ram::new(0x2000),
-      gpu: GPU::new(),
+      gpu: gpu,
       timer: Timer::new(),
       sound: Sound::new(),
       serial: Serial::new(),
