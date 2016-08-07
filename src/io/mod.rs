@@ -2,17 +2,22 @@ use self::gpu::GPU;
 use self::timer::Timer;
 use self::sound::Sound;
 use self::serial::Serial;
+use cartridge::Cartridge;
+
+use self::ram::Ram;
 
 mod map;
+mod ram;
+mod bootrom;
+
 mod gpu;
 mod timer;
 mod sound;
 mod serial;
 
-#[derive(Debug)]
 pub struct Interconnect {
-  /// ROM bank #0 (16KB)
-  rom: Vec<u8>,
+  /// Cartridge
+  cartridge: Cartridge,
   /// I/O ports
   io: Vec<u8>,
   /// Internal RAM
@@ -22,7 +27,7 @@ pub struct Interconnect {
   /// Interrupt Flag 
   pub intf: u8,
   // Work RAM (8KB)
-  wram: Vec<u8>,
+  wram: Ram,
   // GPU
   gpu: GPU,
   // Timer
@@ -31,58 +36,62 @@ pub struct Interconnect {
   sound: Sound,
   // Serial
   serial: Serial,
+  // Bootrom is mapped
+  bootrom: bool
 }
 
 impl Interconnect {
-  pub fn new(rom_buf: Vec<u8>) -> Interconnect {
+  pub fn new(cartridge: Cartridge) -> Interconnect {
     Interconnect {
-      rom: rom_buf,
+      cartridge: cartridge,
       io: vec![0x20; 0x7f],
       hram: vec![0x20; 0x7f],
       inte: 0,
       intf: 0,
-      wram: vec![0x20; 0x2000],
+      wram: Ram::new(0x2000),
       gpu: GPU::new(),
       timer: Timer::new(),
       sound: Sound::new(),
-      serial: Serial::new()
+      serial: Serial::new(),
+      bootrom: true
     }
   }
 
   /// Reset the memory state
-  pub fn reset(&mut self) {
-    self.write_byte(0xff05, 0x00);
-    self.write_byte(0xff06, 0x00);
-    self.write_byte(0xff07, 0x00);
-    self.write_byte(0xff10, 0x80);
-    self.write_byte(0xff11, 0xbf);
-    self.write_byte(0xff12, 0xf3);
-    self.write_byte(0xff14, 0xbf);
-    self.write_byte(0xff16, 0x3f);
-    self.write_byte(0xff17, 0x00);
-    self.write_byte(0xff19, 0xbf);
-    self.write_byte(0xff1a, 0x7f);
-    self.write_byte(0xff1b, 0xff);
-    self.write_byte(0xff1c, 0x9f);
-    self.write_byte(0xff1e, 0xbf);
-    self.write_byte(0xff20, 0xff);
-    self.write_byte(0xff21, 0x00);
-    self.write_byte(0xff22, 0x00);
-    self.write_byte(0xff23, 0xbf);
-    self.write_byte(0xff24, 0x77);
-    self.write_byte(0xff25, 0xf3);
-    self.write_byte(0xff26, 0xf1);
-    self.write_byte(0xff40, 0x91);
-    self.write_byte(0xff42, 0x00);
-    self.write_byte(0xff43, 0x00);
-    self.write_byte(0xff45, 0x00);
-    self.write_byte(0xff47, 0xfc);
-    self.write_byte(0xff48, 0xff);
-    self.write_byte(0xff49, 0xff);
-    self.write_byte(0xff4a, 0x00);
-    self.write_byte(0xff4b, 0x00);
-    self.write_byte(0xffff, 0x00);
-  }
+  /// TODO: implement the bootrom
+  //pub fn reset(&mut self) {
+  //  self.write_byte(0xff05, 0x00);
+  //  self.write_byte(0xff06, 0x00);
+  //  self.write_byte(0xff07, 0x00);
+  //  self.write_byte(0xff10, 0x80);
+  //  self.write_byte(0xff11, 0xbf);
+  //  self.write_byte(0xff12, 0xf3);
+  //  self.write_byte(0xff14, 0xbf);
+  //  self.write_byte(0xff16, 0x3f);
+  //  self.write_byte(0xff17, 0x00);
+  //  self.write_byte(0xff19, 0xbf);
+  //  self.write_byte(0xff1a, 0x7f);
+  //  self.write_byte(0xff1b, 0xff);
+  //  self.write_byte(0xff1c, 0x9f);
+  //  self.write_byte(0xff1e, 0xbf);
+  //  self.write_byte(0xff20, 0xff);
+  //  self.write_byte(0xff21, 0x00);
+  //  self.write_byte(0xff22, 0x00);
+  //  self.write_byte(0xff23, 0xbf);
+  //  self.write_byte(0xff24, 0x77);
+  //  self.write_byte(0xff25, 0xf3);
+  //  self.write_byte(0xff26, 0xf1);
+  //  self.write_byte(0xff40, 0x91);
+  //  self.write_byte(0xff42, 0x00);
+  //  self.write_byte(0xff43, 0x00);
+  //  self.write_byte(0xff45, 0x00);
+  //  self.write_byte(0xff47, 0xfc);
+  //  self.write_byte(0xff48, 0xff);
+  //  self.write_byte(0xff49, 0xff);
+  //  self.write_byte(0xff4a, 0x00);
+  //  self.write_byte(0xff4b, 0x00);
+  //  self.write_byte(0xffff, 0x00);
+  //}
 
   pub fn do_cycle(&mut self, ticks: u32) {
     // TODO: this must use Game Boy Speed and VRAM ticks
@@ -96,13 +105,33 @@ impl Interconnect {
 
   /// read a byte from the interconnect
   pub fn read_byte(&self, address: u16) -> u8 {
+
+    // ROM
+    if let Some(off) = map::in_range(address, map::ROM) {
+      // bootrom is still mapped, read from it
+      if self.bootrom && off < 0x100 { 
+        return bootrom::BOOTROM[off as usize];
+      }
+
+      // read a byte from the cartridge
+      return self.cartridge.read_byte(off);
+    }
+
+    // RAM bank
+    if let Some(off) = map::in_range(address, map::RAM_BANK) {
+      // TODO
+    }
+
+
+
+    // Work RAM bank 0
+    //0xc000 ... 0xcfff =>  self.wram[address as usize & 0x0fff],
+
+    // --- Old Implementation
+
     match address {
-      // Cartridge ROM
-      0x0000 ... 0x3fff => self.rom[address as usize],
-      // Work RAM bank 0
-      0xc000 ... 0xcfff => self.wram[address as usize & 0x0fff],
       // TODO: this can be switchable bank 1-7 in GBC
-      0xd000 ... 0xdfff => self.wram[address as usize & 0x0fff],
+      0xd000 ... 0xdfff => self.wram.byte(address & 0x0fff),
       // Keypad
       0xff00 => panic!("TODO: read keypad"),
       // Serial
@@ -134,9 +163,9 @@ impl Interconnect {
   /// write a byte to the interconnect
   pub fn write_byte(&mut self, address: u16, value: u8) {
     match address {
-      0xc000 ... 0xcfff => self.wram[address as usize & 0x0fff] = value,
+      0xc000 ... 0xcfff => self.wram.set_byte(address & 0x0fff, value),
       // TODO: this can be switchable bank 1-7 in GBC
-      0xd000 ... 0xdfff => self.wram[address as usize & 0x0fff] = value,
+      0xd000 ... 0xdfff => self.wram.set_byte(address & 0x0fff, value),
       // Serial
       0xff01 ... 0xff02 => self.serial.write_byte(address, value),
       // Timer

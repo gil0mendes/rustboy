@@ -5,9 +5,11 @@ use std::path::Path;
 
 use cpu::Cpu;
 use io::Interconnect;
+use cartridge::Cartridge;
 
-mod cpu;
 mod io;
+mod cpu;
+mod cartridge;
 
 fn main() {
   // get first command line argument (rom path)
@@ -16,11 +18,11 @@ fn main() {
   // get rom buffer
   let rom_buf = read_rom(rom_name);
 
-  // create a new Interconnect instance
-  let mut interconnect = Interconnect::new(rom_buf);
+  // create cartridge
+  let mut cartridge = Cartridge::new(rom_buf);
 
-  // reset memory state
-  interconnect.reset();
+  // create a new Interconnect instance
+  let mut interconnect = Interconnect::new(cartridge);
 
   // create a new Cpu instance
   let mut cpu = Cpu::new(interconnect);

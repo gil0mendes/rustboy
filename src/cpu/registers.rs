@@ -48,15 +48,15 @@ impl Registers {
   /// initial values after the internal ROM execute
   pub fn new() -> Registers {
     let mut instance = Registers {
-      a: 0x01,
+      a: 0x00,
       b: 0x00,
-      c: 0x13,
+      c: 0x00,
       d: 0x00,
-      e: 0xd8,
-      h: 0x01,
-      l: 0x4d,
-      sp: 0xfffe,
-      pc: 0x100,
+      e: 0x00,
+      h: 0x00,
+      l: 0x00,
+      sp: 0x0000,
+      pc: 0x0000,
       flags: Flags {
         c: false,
         h: false,
