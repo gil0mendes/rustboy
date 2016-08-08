@@ -168,6 +168,11 @@ impl Interconnect {
       return self.cartridge.set_rom_byte(off, value);
     }
 
+    // VRAM
+    if let Some(off) = map::in_range(address, map::VRAM) {
+      return self.gpu.set_vram(off, value);
+    }
+
     match address {
       0xc000 ... 0xcfff => self.wram.set_byte(address & 0x0fff, value),
       // TODO: this can be switchable bank 1-7 in GBC
