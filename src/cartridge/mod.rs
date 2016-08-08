@@ -139,6 +139,9 @@ impl Cartridge {
     self.rom_offset = offset;
   }
 
-
+  /// write a byte into ROM memory
+  pub fn set_rom_byte(&mut self, offset: u16, value: u8) {
+    (self.model.write_rom)(self, offset, value);
+  }
 
 }
