@@ -116,15 +116,17 @@ impl Interconnect {
       return self.cartridge.read_byte(off);
     }
 
+    // VRAM
+    if let Some(off) = map::in_range(address, map::VRAM) {
+      return self.gpu.vram(off);
+    }
+
     // RAM bank
     if let Some(off) = map::in_range(address, map::RAM_BANK) {
-      // TODO
+      return self.cartridge.ram_byte(off);
     }
 
 
-
-    // Work RAM bank 0
-    //0xc000 ... 0xcfff =>  self.wram[address as usize & 0x0fff],
 
     // --- Old Implementation
 

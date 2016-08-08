@@ -1,4 +1,3 @@
-const VRAM_SIZE: usize = 0x2000;
 const VOAM_SIZE: usize = 0xa0;
 
 #[derive(Debug)]
@@ -38,6 +37,8 @@ impl Gpu {
   /// create a new GPU instance
   pub fn new() -> Gpu {
     Gpu {
+      voam: vec![0x20; VOAM_SIZE],
+      vram: vec![0xca; 0x2000],
       control: 0,
       status: 0,
       scy: 0,
@@ -49,17 +50,26 @@ impl Gpu {
       bgp: 0,
       obp0: 0,
       obp1: 0,
-      vram: vec![0x20; VRAM_SIZE],
-      voam: vec![0x20; VOAM_SIZE],
       vrambank: 1
     }
   }
 
+  /// Read a byte from the VRAM
+  pub fn vram(&self, address: u16) -> u8 { 
+    self.vram[address as usize] 
+  }
+
+  /// Write a byte to the VRAM
+  pub fn set_vram(&mut self, address: u16, value: u8) {
+    self.vram[address as usize] = value;
+  }
+
+
+  // --- OLD
+
   /// read one byte from the GPU memory area
   pub fn read_byte(&self, address: u16) -> u8 {
     match address {
-      // VRAM
-      0x8000 ... 0x9fff => self.vram[(self.vrambank as usize * VRAM_SIZE) | (address as usize & (VRAM_SIZE - 0x1))],
       // VOAM
       0xfe00 ... 0xfe99 => self.voam[address as usize & (VOAM_SIZE - 0x1)],
       // control
@@ -92,8 +102,6 @@ impl Gpu {
   /// write one byte to the GPU memory area
   pub fn write_byte(&mut self, address: u16, value: u8) {
     match address {
-      // VRAM
-      0x8000 ... 0x9fff => self.vram[(self.vrambank as usize * VRAM_SIZE) | (address as usize & (VRAM_SIZE - 0x1))] = value,
       // VOAM
       0xfe00 ... 0xfe99 => self.voam[address as usize & (VOAM_SIZE - 0x1)] = value,
       // control
