@@ -11,6 +11,7 @@ use cartridge::Cartridge;
 mod io;
 mod cpu;
 mod gpu;
+mod sound;
 mod cartridge;
 
 fn main() {
