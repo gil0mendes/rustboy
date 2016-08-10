@@ -537,6 +537,8 @@ impl Cpu {
         0xc5 => { self.stack_push(regs.bc()); 3 },
         // ADD A,#
         0xc6 => { let value = self.fetch_byte(); self.alu_add(value, false); 2 },
+        // CB Opcodes
+        0xcb => { self.process_cb_opcodes() }
         // ADC A,#
         0xce => { let value = self.fetch_byte(); self.alu_add(value, true); 2 },
         // POP DE
@@ -585,8 +587,30 @@ impl Cpu {
         0xfb => { self.setei = 2; 1 },
         // CP n
         0xfe => { let byte = self.fetch_byte(); self.alu_cp(byte); 2 },
-        _ => { panic!("Unrecognized opcode: {:#x}", opcode); },
+        _ => panic!("Unrecognized opcode: {:#x}", opcode),
       }
+  }
+
+  fn process_cb_opcodes(&mut self) -> u8 {
+    // get opcode
+    let opcode = self.fetch_byte();
+
+    // save the current regs start
+    let regs = self.regs;
+
+    match opcode {
+        // bit 
+        0x7c => { self.alu_bit(regs.h, 7); 2 }
+        _ => panic!("Unrecognized CB opcode {:#x}", opcode),
+    }   
+  }
+
+  /// test bit v1 in v2
+  fn alu_bit(&mut self, v1: u8, v2: u8) {
+      let result = v1 & (1 << (v2 as u32)) == 0;
+      self.regs.flags.n = false;
+      self.regs.flags.h = true;
+      self.regs.flags.z = result;
   }
 
   /// decrement a value and update the CPU flags
