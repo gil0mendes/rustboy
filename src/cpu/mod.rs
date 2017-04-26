@@ -1115,6 +1115,13 @@ impl Cpu {
             }
             // CB Opcodes
             0xcb => { self.process_cb_opcodes() }
+            // CALL nn
+            0xcd => {
+                self.stack_push(regs.pc + 2);
+                let value = self.fetch_word();
+                self.regs.pc = value;
+                6
+            }
             // ADC A,#
             0xce => {
                 let value = self.fetch_byte();
