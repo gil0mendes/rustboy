@@ -1269,13 +1269,52 @@ impl Cpu {
         let regs = self.regs;
 
         match opcode {
-            // bit
-            0x7c => {
-                self.alu_bit(regs.h, 7);
-                2
+            // RL B
+            0x10 => { self.regs.b = self.alu_rl(regs.b); 2  }
+            // RL C
+            0x11 => { self.regs.c = self.alu_rl(regs.c); 2 }
+            // RL D
+            0x12 => { self.regs.d = self.alu_rl(regs.d); 2 }
+            // RL E
+            0x13 => { self.regs.e = self.alu_rl(regs.e); 2 }
+            // RL H
+            0x14 => { self.regs.h = self.alu_rl(regs.h); 2 }
+            // RL L
+            0x15 => { self.regs.l = self.alu_rl(regs.l); 2 }
+            // RL (HL)
+            0x16 => {
+                let value = self.interconnect.read_byte(regs.hl());
+                let new_value = self.alu_rl(value);
+                self.interconnect.write_byte(regs.hl(), new_value);
+                4
             }
+            // RL A
+            0x17 => { self.regs.a = self.alu_rl(regs.a); 2 }
+            // bit
+            0x7c => { self.alu_bit(regs.h, 7); 2 }
             _ => panic!("Unrecognized CB opcode {:#x}", opcode),
         }
+    }
+
+    /// Update flags after some rotation operations.
+    fn alu_srflagsupdate(&mut self, result: u8, carry: bool) {
+        self.regs.flags.h = false;
+        self.regs.flags.n = false;
+        self.regs.flags.c = carry;
+        self.regs.flags.z = result == 0;
+    }
+
+    /// Rotate value thought Carry flag
+    fn alu_rl (&mut self, value: u8) -> u8 {
+        let carry = value & 0x80 == 0x80;
+
+        // compute the new value
+        let result = (value << 1) | (if self.regs.flags.c { 1 } else { 0 });
+
+        // updates flags
+        self.alu_srflagsupdate(result, carry);
+
+        result
     }
 
     /// test bit v1 in v2
