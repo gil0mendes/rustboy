@@ -1,1 +1,4 @@
 target
+
+# Ignore dev tools
+.idea/
