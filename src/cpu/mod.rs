@@ -121,8 +121,8 @@ impl Cpu {
 
     /// push a value to stack
     fn stack_push(&mut self, value: u16) {
-        self.interconnect.write_word(self.regs.sp, value);
         self.regs.sp -= 2;
+        self.interconnect.write_word(self.regs.sp, value);
     }
 
     /// pop a value from stack
