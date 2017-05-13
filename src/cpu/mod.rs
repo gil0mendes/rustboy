@@ -267,6 +267,12 @@ impl Cpu {
                 self.regs.d = self.alu_dec(regs.d);
                 1
             }
+            // RLCA
+            0x17 => {
+                self.regs.a = self.alu_rl(regs.a);
+                self.regs.flags.z = false;
+                1
+            }
             // JP (HL)
             0x18 => {
                 self.regs.pc = regs.pc + (self.fetch_byte() as u16);
@@ -1297,7 +1303,7 @@ impl Cpu {
     }
 
     /// Update flags after some rotation operations.
-    fn alu_srflagsupdate(&mut self, result: u8, carry: bool) {
+    fn alu_srflagupdate(&mut self, result: u8, carry: bool) {
         self.regs.flags.h = false;
         self.regs.flags.n = false;
         self.regs.flags.c = carry;
@@ -1312,7 +1318,7 @@ impl Cpu {
         let result = (value << 1) | (if self.regs.flags.c { 1 } else { 0 });
 
         // updates flags
-        self.alu_srflagsupdate(result, carry);
+        self.alu_srflagupdate(result, carry);
 
         result
     }
