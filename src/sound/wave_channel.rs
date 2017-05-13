@@ -4,7 +4,8 @@ extern crate blip_buf;
 
 pub struct WaveChannel {
     enabled: bool,
-    blip: BlipBuf
+    blip: BlipBuf,
+    pub waveram: [u8; 32]
 }
 
 impl WaveChannel {
@@ -12,7 +13,8 @@ impl WaveChannel {
     pub fn new(blip: BlipBuf) -> WaveChannel {
         WaveChannel {
             enabled: false,
-            blip: blip
+            blip: blip,
+            waveram: [0; 32]
         }
     }
 

@@ -70,24 +70,31 @@ impl Sound {
             channel2: SquareChannel::new(blipbuf2, false),
             channel3: WaveChannel::new(blipbuf3),
             channel4: NoiseChannel::new(blipbuf4),
-            player: (),
+            player,
         }
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             // data registers
-            io_map::NR10 ... io_map::NR51 => self.registerdata[address as usize],
+            io_map::NR10 ... io_map::NR51 => self.registerdata[address as usize - 0x10],
+
             // enable and sound status
             io_map::NR52 => {
-                (self.registerdata[address as usize] & 0xf0)
-                    | (self.channel1.on() { 1 } else { 0 })
-                | (self.channel2.on() { 2 } else { 0 })
-                | (self.channel3.on() { 4 } else { 0 })
-                | (self.channel4.on() { 8 } else { 0 })
-            }
+                (self.registerdata[address as usize - 0x10] & 0xf0)
+                | (if self.channel1.on() { 1 } else { 0 })
+                | (if self.channel2.on() { 2 } else { 0 })
+                | (if self.channel3.on() { 4 } else { 0 })
+                | (if self.channel4.on() { 8 } else { 0 })
+            },
 
-            _ => panic!("Sound handle read from address {:#x}", address),
+            // wave RAM
+            io_map::NR3_RAM_START ... io_map::NR3_RAM_END => {
+                (self.channel3.waveram[(address as usize - 0x30) / 2] << 4) |
+                    self.channel3.waveram[(address as usize - 0x30) / 2 + 1]
+            },
+
+            _ => 0,
         }
     }
 

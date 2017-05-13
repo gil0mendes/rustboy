@@ -1,8 +1,9 @@
 use gpu::Gpu;
-// use sound::Sound;
 use self::ram::Ram;
 use self::io_map::*;
-// use sound::CpalPlayer;
+use super::sound::AudioPlayer;
+use super::sound::CpalPlayer;
+use super::sound::Sound;
 use self::timer::Timer;
 use self::serial::Serial;
 use cartridge::Cartridge;
@@ -33,7 +34,7 @@ pub struct Interconnect {
     // Timer
     timer: Timer,
     // Sound
-    // sound: Sound,
+    sound: Sound,
     // Serial
     serial: Serial,
     // Bootrom is mapped
@@ -42,6 +43,9 @@ pub struct Interconnect {
 
 impl Interconnect {
     pub fn new(cartridge: Cartridge, gpu: Gpu) -> Interconnect {
+        // creates a new player
+        let player = CpalPlayer::get();
+
         Interconnect {
             cartridge: cartridge,
             io: vec![0x20; 0x7f],
@@ -51,7 +55,7 @@ impl Interconnect {
             iram: Ram::new(0x2000),
             gpu: gpu,
             timer: Timer::new(),
-            // sound: Sound::new(CpalPlayer::get()),
+            sound: Sound::new(Box::new(player.expect("Player is mandatory")) as Box<AudioPlayer>),
             serial: Serial::new(),
             bootrom: true
         }
@@ -155,7 +159,7 @@ impl Interconnect {
             // Interrupt Flags
             0xff0f => self.intf = value,
             // Sound
-            // 0xff10 ... 0xff3f => self.sound.write_byte(address, value),
+            0xff10 ... 0xff3f => self.sound.write_byte(address, value),
             0xff10 ... 0xff3f => {
                 // TODO
             }
@@ -195,7 +199,7 @@ impl Interconnect {
             // Interrupt flags
             0x0f => self.intf,
             // Sound registers
-            // 0x10 ... 0x3f => self.sound.read_byte(address),
+            0x10 ... 0x3f => self.sound.read_byte(address),
             0x10 ... 0x3f => {
                 // TODO
                 0x00

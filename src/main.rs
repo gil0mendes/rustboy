@@ -1,3 +1,7 @@
+extern crate cpal;
+extern crate piston;
+extern crate piston_window;
+
 use std::env;
 use std::fs::File;
 use std::io::Read;
@@ -11,7 +15,7 @@ use cartridge::Cartridge;
 mod io;
 mod cpu;
 mod gpu;
-// mod sound;
+mod sound;
 mod cartridge;
 
 fn main() {
@@ -24,6 +28,8 @@ fn main() {
     // create cartridge
     let mut cartridge = Cartridge::new(rom_buf);
 
+    // start window
+
     // create GPU
     let mut gpu = Gpu::new();
 
@@ -33,7 +39,8 @@ fn main() {
     // create a new Cpu instance
     let mut cpu = Cpu::new(interconnect);
 
-    cpu.run()
+    // start CPU
+    cpu.run();
 }
 
 /// Read ROM as a 8-bit integer vector

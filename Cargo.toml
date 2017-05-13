@@ -6,6 +6,8 @@ authors = ["Gil Mendes <gil00mendes@gmail.com>"]
 [dependencies]
 blip_buf = ">=0.1.3"
 cpal = "0.2"
+piston = "0.31.1"
+piston_window = "0.65.0"
 
 [[bin]]
 name = "rustboy"

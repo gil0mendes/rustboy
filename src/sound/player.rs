@@ -1,9 +1,13 @@
+use cpal;
+use std;
+use sound;
+
 pub struct CpalPlayer {
     voice: cpal::Voice
 }
 
 impl CpalPlayer {
-    fn get() -> Option<CpalPlayer> {
+    pub fn get() -> Option<CpalPlayer> {
         // try get endpoints
         if cpal::get_endpoints_list().count() == 0 { return None }
 
@@ -21,7 +25,7 @@ impl CpalPlayer {
             // get the wanted sample rate
             match wanted_samplerate {
                 None => wanted_samplerate = Some(format.samples_rate),
-                Some(cpal::SamplesRate(r)) if format.samples_rate.0 && r < 192000 => wanted_samplterate = Some(format.samples_rate),
+                Some(cpal::SamplesRate(r)) if r < format.samples_rate.0 && r < 192000 => wanted_samplerate = Some(format.samples_rate),
                 _ => {}
             }
 
@@ -61,7 +65,7 @@ impl sound::AudioPlayer for CpalPlayer {
         // get the number of channels
         let channel_count = self.voice.format().channels.len();
 
-        let coutn = but_left.len();
+        let count = buf_left.len();
         let mut done = 0;
         let mut lastdone = count;
 

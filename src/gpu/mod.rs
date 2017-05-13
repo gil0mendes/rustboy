@@ -126,7 +126,7 @@ impl Gpu {
             // WX
             0xff4b => self.wx = value,
             // Other addresses
-            _ => panic!("GPU can write on {:#x} address", address),
+            _ => panic!("GPU can't write on {:#x} address", address),
         }
     }
 }
