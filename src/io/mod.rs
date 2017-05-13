@@ -16,6 +16,12 @@ mod bootrom;
 mod timer;
 mod serial;
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum GbSpeed {
+    Single,
+    Double,
+}
+
 pub struct Interconnect {
     /// Cartridge
     cartridge: Cartridge,
@@ -38,7 +44,11 @@ pub struct Interconnect {
     // Serial
     serial: Serial,
     // Bootrom is mapped
-    bootrom: bool
+    bootrom: bool,
+    // GB speed mode
+    gbspeed: GbSpeed,
+    // Speed switch request
+    speed_switch_req: bool
 }
 
 impl Interconnect {
@@ -57,7 +67,9 @@ impl Interconnect {
             timer: Timer::new(),
             sound: Sound::new(Box::new(player.expect("Player is mandatory")) as Box<AudioPlayer>),
             serial: Serial::new(),
-            bootrom: true
+            bootrom: true,
+            gbspeed: GbSpeed::Single,
+            speed_switch_req: false
         }
     }
 
@@ -69,6 +81,18 @@ impl Interconnect {
         self.timer.do_cycle(cpu_ticks);
         self.inte |= self.timer.interrupt;
         self.timer.interrupt = 0;
+    }
+
+    pub fn switch_speed(&mut self) {
+        if self.speed_switch_req {
+            if self.gbspeed == GbSpeed::Double {
+                self.gbspeed = GbSpeed::Single;
+            } else {
+                self.gbspeed = GbSpeed::Double;
+            }
+        }
+
+        self.speed_switch_req = false;
     }
 
     /// read a byte from the interconnect
@@ -98,7 +122,6 @@ impl Interconnect {
         if let Some(off) = map::in_range(address, map::IO) {
             return self.read_io(off);
         }
-
 
         // --- Old Implementation
 

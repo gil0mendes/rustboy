@@ -247,6 +247,11 @@ impl Cpu {
                 self.regs.c = self.alu_dec(regs.c);
                 1
             }
+            // STOP
+            0x10 => {
+                self.interconnect.switch_speed();
+                1
+            },
             // LD (DE),A
             0x12 => {
                 self.interconnect.write_byte(regs.de(), regs.a);
@@ -389,6 +394,7 @@ impl Cpu {
                 self.regs.l = self.fetch_byte();
                 2
             }
+            // RET
             0xc9 => {
                 self.regs.pc = self.stack_pop();
                 4
