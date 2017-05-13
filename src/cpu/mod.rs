@@ -313,7 +313,7 @@ impl Cpu {
                 self.regs.e = self.fetch_byte();
                 2
             }
-            // HR NZ,n
+            // JR NZ,n
             0x20 => {
                 if !self.regs.flags.z {
                     self.cpu_jr();
@@ -388,6 +388,10 @@ impl Cpu {
             0x2e => {
                 self.regs.l = self.fetch_byte();
                 2
+            }
+            0xc9 => {
+                self.regs.pc = self.stack_pop();
+                4
             }
             // JR NC,n
             0x30 => {
@@ -1106,12 +1110,12 @@ impl Cpu {
             // JP nn
             0xc3 => {
                 self.regs.pc = self.fetch_word();
-                3
+                4
             }
             // PUSH BC
             0xc5 => {
                 self.stack_push(regs.bc());
-                3
+                4
             }
             // ADD A,#
             0xc6 => {
