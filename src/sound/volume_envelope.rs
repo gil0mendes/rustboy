@@ -35,7 +35,7 @@ impl VolumeEnvelope {
                 self.delay = self.period;
                 self.volume = self.initial_volume;
             }
-            _ => { panic!("TODO: VolumeEnvelope write address {:#x}", address) }
+            _ => ()
         }
     }
 

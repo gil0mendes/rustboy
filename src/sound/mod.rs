@@ -100,8 +100,20 @@ impl Sound {
 
     /// write a value to the sound memory space
     pub fn write_byte(&mut self, address: u16, value: u8) {
+        // The sound unity must be enabled to use all the address space
+        if address != 0x26 && !self.enabled { return; }
+
+        // registers address space
+        if address >= 0x10 && address <= 0x26 {
+            self.registerdata[address as usize - 0x10] = value;
+        }
+
         match address {
-            _ => println!("Sound handle write to address {:#x}", address),
+            // Channel 1 address space
+            0x10 ... 0x14 => self.channel1.write_byte(address, value),
+            // Allow enable and disable the sound unity
+            0x26 => self.enabled = value & 0x80 == 0x80,
+            _ => panic!("Sound handle write to address {:#x}", address),
         }
     }
 }
