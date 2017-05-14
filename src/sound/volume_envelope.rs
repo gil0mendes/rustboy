@@ -28,7 +28,7 @@ impl VolumeEnvelope {
             0x12 | 0x17 | 0x21 => {
                 self.period = value & 0x7;
                 self.goes_up = value & 0x8 == 0x8;
-                self.initial_volume = v >> 4;
+                self.initial_volume = value >> 4;
                 self.volume = self.initial_volume;
             },
             0x14 | 0x19 | 0x23 if value & 0x80 == 0x80 => {
@@ -36,6 +36,24 @@ impl VolumeEnvelope {
                 self.volume = self.initial_volume;
             }
             _ => { panic!("TODO: VolumeEnvelope write address {:#x}", address) }
+        }
+    }
+
+    /// Step function for the volume envelop.
+    pub fn step(&mut self) {
+        // don't do nothing during the delay period
+        if self.delay >  1 {
+            self.delay -= 1;
+        } else if self.delay == 1 {
+            // reset delay
+            self.delay = self.period;
+
+            // raise the volume
+            if self.goes_up && self.volume < 15 {
+                self.volume += 1;
+            } else if !self.goes_up && self.volume > 0 {
+                self.volume -= 1;
+            }
         }
     }
 }
