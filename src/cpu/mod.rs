@@ -359,6 +359,11 @@ impl Cpu {
                 self.regs.h = self.fetch_byte();
                 2
             }
+            // DAA
+            0x27 => {
+                self.alu_daa();
+                1
+            }
             // JR cc,n
             0x28 => {
                 if self.regs.flags.z {
@@ -1310,6 +1315,30 @@ impl Cpu {
             0x7c => { self.alu_bit(regs.h, 7); 2 }
             _ => panic!("Unrecognized CB opcode {:#x}", opcode),
         }
+    }
+
+    fn alu_daa(&mut self) {
+        // get reg A value
+        let mut a = self.regs.a;
+        let mut adjust = if self.regs.flags.c { 0x60 } else { 0x00 };
+
+        if self.regs.flags.h { adjust |= 0x06; };
+
+        if !self.regs.flags.n {
+            if a & 0x0f > 0x09 { adjust |= 0x06; };
+            if a > 0x99 { adjust |= 0x60; };
+            a = a.wrapping_add(adjust);
+        } else {
+            a = a.wrapping_add(adjust);
+        }
+
+        // update flags
+        self.regs.flags.c = adjust >= 0x60;
+        self.regs.flags.h = false;
+        self.regs.flags.z = a == 0;
+
+        // update reg A value
+        self.regs.a = a;
     }
 
     /// Update flags after some rotation operations.
