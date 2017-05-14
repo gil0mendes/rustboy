@@ -1,3 +1,5 @@
+//! Input/Output abstraction for memory, ROM, and I/O mapped registers.
+
 use gpu::Gpu;
 use self::ram::Ram;
 use self::io_map::*;
@@ -27,14 +29,14 @@ pub struct Interconnect {
     cartridge: Cartridge,
     /// I/O ports
     io: Vec<u8>,
-    /// Internal RAM
-    hram: Vec<u8>,
     /// Interrupt Enable Register
     pub inte: u8,
     /// Interrupt Flag
     pub intf: u8,
     // Work RAM
     iram: Ram,
+    // 0-page RAM
+    zpage: Ram,
     // GPU
     gpu: Gpu,
     // Timer
@@ -48,7 +50,9 @@ pub struct Interconnect {
     // GB speed mode
     gbspeed: GbSpeed,
     // Speed switch request
-    speed_switch_req: bool
+    speed_switch_req: bool,
+    // Working RAM Bank
+    wrambank: usize
 }
 
 impl Interconnect {
@@ -59,17 +63,18 @@ impl Interconnect {
         Interconnect {
             cartridge: cartridge,
             io: vec![0x20; 0x7f],
-            hram: vec![0x20; 0x7f],
             inte: 0,
             intf: 0,
             iram: Ram::new(0x2000),
+            zpage: Ram::new(0x7f),
             gpu: gpu,
             timer: Timer::new(),
             sound: Sound::new(Box::new(player.expect("Player is mandatory")) as Box<AudioPlayer>),
             serial: Serial::new(),
             bootrom: true,
             gbspeed: GbSpeed::Single,
-            speed_switch_req: false
+            speed_switch_req: false,
+            wrambank: 1
         }
     }
 
@@ -128,31 +133,35 @@ impl Interconnect {
             return self.iram.byte(off);
         }
 
+        // Object Attribute Mapping
+        if let Some(off) = map::in_range(address, map::OAM) {
+            panic!("TODO: implement OEM");
+        }
+
         // IO
         if let Some(off) = map::in_range(address, map::IO) {
             return self.read_io(off);
         }
 
-        // --- Old Implementation
-
-        match address {
-            // Keypad
-            0xff00 => panic!("TODO: read keypad"),
-            // Serial
-            0xff01 ... 0xff02 => self.serial.read_byte(address),
-            // Time
-            0xff04 ... 0xff07 => self.timer.read_byte(address),
-            // Interrupt Flags
-            0xff0f => self.intf,
-            // Infrared (Implementation don't needed)
-            0xff56 => { 0 }
-            // High RAM
-            0xff80 ... 0xfffe => self.hram[address as usize & 0x007f],
-            // IE (Interrupt Enable)
-            0xffff => self.inte,
-            // invalid address
-            _ => { panic!("Read from an unrecognized address: {:#x}", address); }
+        // Working RAM Bank Number
+        if address == map::WRAMBANK {
+            return self.wrambank as u8;
         }
+
+        // Zero Page (High RAM)
+        if let Some(off) = map::in_range(address, map::ZERO_PAGE) {
+             return self.zpage.byte(off);
+        }
+
+        // IE (Interrupt Enable)
+        if address == map::IEN {
+            return self.inte;
+        }
+
+        // Infrared (Implementation don't needed)
+        // 0xff56 => { 0 }
+
+        panic!("Read from an unrecognized address: {:04x}", address);
     }
 
     /// read a word from the interconnect
@@ -182,30 +191,36 @@ impl Interconnect {
             return self.iram.set_byte(off, value);
         }
 
-        // --- OLD
-
-        match address {
-            // Serial
-            0xff01 ... 0xff02 => self.serial.write_byte(address, value),
-            // Timer
-            0xff04 ... 0xff07 => self.timer.write_byte(address, value),
-            // Interrupt Flags
-            0xff0f => self.intf = value,
-            // Sound
-            0xff10 ... 0xff3f => self.sound.write_byte(address, value),
-            0xff10 ... 0xff3f => {
-                // TODO
-            }
-            // GPU
-            0xff40 ... 0xff4b => self.gpu.write_byte(address, value),
-            // Infrared (Implementation don't needed)
-            0xff56 => {}
-            // High RAM
-            0xff80 ... 0xfffe => self.hram[address as usize & 0x007f] = value,
-            // Interrupt Enable
-            0xffff => self.inte = value,
-            _ => { panic!("Write for an unrecognized address: {:#x}", address); }
+        // IRAM Echo
+        if let Some(off) = map::in_range(address, map::IRAM_ECHO) {
+            return self.iram.set_byte(off, value);
         }
+
+        // Object Attribute Mapping
+        if let Some(off) = map::in_range(address, map::OAM) {
+            panic!("TODO: implement OEM");
+        }
+
+        // IO
+        if let Some(off) = map::in_range(address, map::IO) {
+            return self.write_io(off, value);
+        }
+
+        // Zero Page (High RAM)
+        if let Some(off) = map::in_range(address, map::ZERO_PAGE) {
+            return self.zpage.set_byte(off, value);
+        }
+
+        // Interrupt Enable
+        if address == map::IEN {
+            // TODO implement interrupt
+            return self.inte = value;
+        }
+
+        panic!("Write for an unrecognized address: {:04x}", address);
+
+        // Infrared (Implementation don't needed)
+        // 0xff56 => {}
     }
 
     /// write a word in memory
@@ -255,13 +270,12 @@ impl Interconnect {
             // Interrupt flags
             0x0f => self.intf = value,
             // Sound registers
-            // 0x10 ... 0x3f => self.sound.write_byte(address, value),
-            0x10 ... 0x3f => {
-                // TODO
-            },
+            0x10 ... 0x3f => self.sound.write_byte(address, value),
             // GPU registers
             0x40 ... 0x4b => self.gpu.write_byte(address, value),
-            _ => {}
+            _ => {
+                panic!("Writing to na IO address not handled: {:04x}", address);
+            }
         }
     }
 }

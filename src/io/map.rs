@@ -14,10 +14,12 @@ pub const IRAM_ECHO: (u16, u16) = (0xe000, 0xfdff);
 pub const OAM: (u16, u16) = (0xfe00, 0xfe9f);
 /// IO ports
 pub const IO: (u16, u16) = (0xff00, 0xff4b);
-/// Register used to unmap the bootrom, Should bot 
+/// Register used to unmap the bootrom, Should not
 /// be used by regular games
 pub const UNMAP_BOOTROM: u16 = 0xff50;
-/// Zero page memory
+/// Working RAM Bank Number
+pub const WRAMBANK: u16 = 0xff70;
+/// Zero page memory (High RAM)
 pub const ZERO_PAGE: (u16, u16) = (0xff80, 0xfffe);
 /// Interrupt Enable Register
 pub const IEN: u16 = 0xffff;
