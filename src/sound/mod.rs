@@ -40,18 +40,22 @@ fn create_blipbuf(samples_rate: u32) -> BlipBuf {
 pub struct Sound {
     /// True if the sound circuit is enabled
     enabled: bool,
-    // Register data
+    /// Register data
     registerdata: [u8; 0x17],
-    // channel 1 (square channel)
+    /// channel 1 (square channel)
     channel1: SquareChannel,
-    // channel 2 (square channel)
+    /// channel 2 (square channel)
     channel2: SquareChannel,
-    // channel 3 (wave channel)
+    /// channel 3 (wave channel)
     channel3: WaveChannel,
-    // channel 4 (Noise channel)
+    /// channel 4 (Noise channel)
     channel4: NoiseChannel,
-    // Player
-    player: Box<AudioPlayer>
+    /// Player
+    player: Box<AudioPlayer>,
+    /// Left volume
+    volume_left: u8,
+    /// Right volume
+    volume_right: u8,
 }
 
 impl Sound {
@@ -71,6 +75,8 @@ impl Sound {
             channel3: WaveChannel::new(blipbuf3),
             channel4: NoiseChannel::new(blipbuf4),
             player,
+            volume_left: 7,
+            volume_right: 7,
         }
     }
 
@@ -111,9 +117,22 @@ impl Sound {
         match address {
             // Channel 1 address space
             0x10 ... 0x14 => self.channel1.write_byte(address, value),
+            // Channel 2 address space
+            0x16 ... 0x19 => self.channel2.write_byte(address, value),
+            // Channel 3 address space
+            0x1a ... 0x1e => self.channel3.write_byte(address, value),
+            // Channel 4 address space
+            0x20 ... 0x23 => self.channel4.write_byte(address, value),
+            // Set volume
+            0x24 => {
+                self.volume_left = value & 0x7;
+                self.volume_right = (value >> 4) & 0x7;
+            }
             // Allow enable and disable the sound unity
             0x26 => self.enabled = value & 0x80 == 0x80,
-            _ => panic!("Sound handle write to address {:#x}", address),
+            // Channel 3 address space echo
+            0x30 ... 0x3f => self.channel3.write_byte(address, value),
+            _ => (),
         }
     }
 }
