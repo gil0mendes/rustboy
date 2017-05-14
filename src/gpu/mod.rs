@@ -69,30 +69,28 @@ impl Gpu {
     /// read one byte from the GPU memory area
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
-            // VOAM
-            0xfe00 ... 0xfe99 => self.voam[address as usize & (VOAM_SIZE - 0x1)],
             // control
-            0xff40 => self.control,
+            0x40 => self.control,
             // Status
-            0xff41 => self.status,
+            0x41 => self.status,
             // SCY
-            0xff42 => self.scy,
+            0x42 => self.scy,
             // SCX
-            0xff43 => self.scx,
+            0x43 => self.scx,
             // LY
-            0xff44 => self.ly,
+            0x44 => self.ly,
             // LYC
-            0xff45 => self.lyc,
+            0x45 => self.lyc,
             // BGP
-            0xff47 => self.bgp,
+            0x47 => self.bgp,
             // OBP0
-            0xff48 => self.obp0,
+            0x48 => self.obp0,
             // OBP1
-            0xff49 => self.obp1,
+            0x49 => self.obp1,
             // WY
-            0xff4a => self.wy,
+            0x4a => self.wy,
             // WX
-            0xff4b => self.wx,
+            0x4b => self.wx,
             // Other addresses
             _ => panic!("GPU can read {:#x} address", address)
         }
@@ -101,30 +99,28 @@ impl Gpu {
     /// write one byte to the GPU memory area
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            // VOAM
-            0xfe00 ... 0xfe99 => self.voam[address as usize & (VOAM_SIZE - 0x1)] = value,
             // control
-            0xff40 => self.control = value,
+            0x40 => self.control = value,
             // Status
-            0xff41 => self.status = value,
+            0x41 => self.status = value,
             // SCY
-            0xff42 => self.scy = value,
+            0x42 => self.scy = value,
             // SCX
-            0xff43 => self.scx = value,
+            0x43 => self.scx = value,
             // LY - line (only read are supported)
-            0xff44 => {}
+            0x44 => {}
             // LYC
-            0xff45 => self.lyc = value,
+            0x45 => self.lyc = value,
             // BGP
-            0xff47 => self.bgp = value,
+            0x47 => self.bgp = value,
             // OBP0
-            0xff48 => self.obp0 = value,
+            0x48 => self.obp0 = value,
             // OBP1
-            0xff49 => self.obp1 = value,
+            0x49 => self.obp1 = value,
             // WY
-            0xff4a => self.wy = value,
+            0x4a => self.wy = value,
             // WX
-            0xff4b => self.wx = value,
+            0x4b => self.wx = value,
             // Other addresses
             _ => panic!("GPU can't write on {:#x} address", address),
         }
