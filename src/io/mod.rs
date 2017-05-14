@@ -118,6 +118,16 @@ impl Interconnect {
             return self.cartridge.ram_byte(off);
         }
 
+        // Internal RAM
+        if let Some(off) = map::in_range(address, map::IRAM){
+            return self.iram.byte(off);
+        }
+
+        // Internal RAM Echo
+        if let Some(off) = map::in_range(address, map::IRAM_ECHO) {
+            return self.iram.byte(off);
+        }
+
         // IO
         if let Some(off) = map::in_range(address, map::IO) {
             return self.read_io(off);
