@@ -64,6 +64,7 @@ pub static BOOTROM: [u8; 0x100] = [
 
     // init_tiles_loop:
     0x0E, 0x0C, // LD     C 0x0c
+
     // init_tiles_inner:
     0x3D, // DEC    A
     0x28, 0x08, // JR Z   init_scroll
@@ -111,12 +112,14 @@ pub static BOOTROM: [u8; 0x100] = [
     0x1E, 0xC1, // LD     E 0xc1
     0xFE, 0x64, // CP     A 0x64
     0x20, 0x06, // JR NZ  skip_sound
+
     // play_sound:
     0x7B, // LD     A E
     0xE2, // LD     [0xff00 + C] A
     0x0C, // INC    C
     0x3E, 0x87, // LD     A 0x87
     0xE2, // LD     [0xff00 + C] A
+
     // skip_sound:
     0xF0, 0x42, // LD     A [0xff00 + #SCY]
     0x90, // SUB    A B
@@ -128,11 +131,12 @@ pub static BOOTROM: [u8; 0x100] = [
     0x16, 0x20, // LD     D 0x20
     0x18, 0xCB, // JR     scroll_loop
 
-
     // crc_0:
     0x4F, // LD     C A
+
     // crc_1:
     0x06, 0x04, // LD     B 0x04
+
     // crc_round:
     0xC5, // PUSH   BC
     0xCB, 0x11, // RL     C
@@ -155,15 +159,19 @@ pub static BOOTROM: [u8; 0x100] = [
     0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,
     0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC,
     0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,
+
     // tile_data: bytes
     0x3C, 0x42, 0xB9, 0xA5, 0xB9, 0xA5, 0x42, 0x3C,
+
     // validate_cart:
     0x21, 0x04, 0x01, // LD     HL, 0x0104
     0x11, 0xA8, 0x00, // LD     DE, #expected_header
+
     // check_header:
     0x1A, // LD     A [DE]
     0x13, // INC    DE
     0xBE, // CP     A [HL]
+
     // This is an infinite loop when the checksum fails. Replacing
     // it with 0x00 0x00 (NOP NOP) will allow invalid ROMs to run.
     0x20, 0xFE, // JR NZ  .
@@ -173,16 +181,19 @@ pub static BOOTROM: [u8; 0x100] = [
     0x20, 0xF5, // JR NZ  check_header
     0x06, 0x19, // LD     B 0x19
     0x78, // LD     A B
+
     // header_sum
     0x86, // ADD    A [HL]
     0x23, // INC    HL
     0x05, // DEC    B
     0x20, 0xFB, // JR NZ  header_sum
     0x86, // ADD    A [HL]
+
     // same as above, infinite loop if the sum is bad, replace with
     // NOPs to run anyway.
     0x20, 0xFE, // JR NZ  .
     0x3E, 0x01, // LD A   0x1
+
     // There shouldn't be anything at that address, I assume that's
     // how you tell the hardware to unmap the bootrom
     0xE0, 0x50, // LD [0xff00 + 0x50] A

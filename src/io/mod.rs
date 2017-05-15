@@ -206,6 +206,11 @@ impl Interconnect {
             return self.write_io(off, value);
         }
 
+        // Working RAM Bank Number
+        if address == map::WRAMBANK {
+            return self.wrambank = value as usize;
+        }
+
         // Zero Page (High RAM)
         if let Some(off) = map::in_range(address, map::ZERO_PAGE) {
             return self.zpage.set_byte(off, value);

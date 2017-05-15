@@ -742,6 +742,11 @@ impl Cpu {
                 self.interconnect.write_byte(regs.hl(), regs.l);
                 2
             }
+            // HALT
+            0x76 => {
+                self.halted = true;
+                1
+            }
             // LD (HL),A
             0x77 => {
                 self.interconnect.write_byte(regs.hl(), regs.a);
@@ -1313,6 +1318,13 @@ impl Cpu {
             0x17 => { self.regs.a = self.alu_rl(regs.a); 2 }
             // bit
             0x7c => { self.alu_bit(regs.h, 7); 2 }
+            // SET 7,HL
+            0xfe => {
+                let address = regs.hl();
+                let value = self.interconnect.read_byte(address) | (1 << 7);
+                self.interconnect.write_byte(address, value);
+                4
+            }
             _ => panic!("Unrecognized CB opcode {:#x}", opcode),
         }
     }
