@@ -82,7 +82,7 @@ impl Cpu {
     pub fn run(&mut self) {
         loop {
             // TODO: remove this when implement the GDB
-            println!("{:?}", self);
+            // println!("{:?}", self);
 
             // process the next instruction
             let cycles = self.do_internal_cycle() * 4 as u32;

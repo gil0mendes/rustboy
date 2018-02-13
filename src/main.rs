@@ -1,6 +1,14 @@
 extern crate cpal;
-extern crate piston;
-extern crate piston_window;
+#[macro_use]
+extern crate error_chain;
+extern crate sdl2;
+#[macro_use]
+extern crate glium;
+#[macro_use]
+extern crate log;
+extern crate glium_sdl2;
+extern crate imgui;
+extern crate imgui_glium_renderer;
 
 use std::env;
 use std::fs::File;
@@ -11,10 +19,12 @@ use cpu::Cpu;
 use gpu::Gpu;
 use io::Interconnect;
 use cartridge::Cartridge;
+use frontend::Controller;
 
 mod io;
 mod cpu;
 mod gpu;
+mod frontend;
 mod sound;
 mod cartridge;
 
@@ -28,7 +38,7 @@ fn main() {
     // create cartridge
     let mut cartridge = Cartridge::new(rom_buf);
 
-    // start window
+    Controller::new(200, 200);
 
     // create GPU
     let mut gpu = Gpu::new();
