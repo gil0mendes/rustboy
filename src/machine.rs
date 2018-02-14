@@ -4,17 +4,27 @@ use gpu::Gpu;
 use io::Interconnect;
 
 pub struct Machine {
-    cpu: Cpu
+    cpu: Cpu,
+    interconnect: Interconnect
 }
 
 /// Manage the GameBoy as a whole.
 impl Machine {
     pub fn new(cartridge: Cartridge) -> Self {
         let interconnect = Interconnect::new(cartridge, Gpu::new());
-        let cpu = Cpu::new(interconnect);
+        let cpu = Cpu::new();
 
         Machine {
-            cpu
+            cpu,
+            interconnect
         }
+    }
+
+    pub fn emulate(&mut self) {
+        // Process the next CPU instruction
+        let cycles = self.cpu.next_trick(&mut self.interconnect);
+
+        // Do the interconnect cycle
+        self.interconnect.do_cycle(cycles);
     }
 }

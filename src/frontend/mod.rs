@@ -99,13 +99,13 @@ impl Controller {
         let (width, height) = target.get_dimensions();
         let ui = self.imgui.frame((width, height), (width, height), 0.1);
 
-        // TODO: process the next instruction
+        'main: loop {
+            // process the next instruction
+            machine.emulate();
 
-        screen.render(&ui);
+            screen.render(&ui);
+        }
 
         target.finish();
-
-        loop {
-        }
     }
 }

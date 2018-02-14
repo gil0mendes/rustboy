@@ -10,8 +10,6 @@ mod registers;
 pub struct Cpu {
     /// CPU registers
     regs: Registers,
-    /// Interconnect
-    interconnect: Interconnect,
     /// CPU halted flag
     halted: bool,
     // interrupts are enabled?
@@ -24,11 +22,10 @@ pub struct Cpu {
 
 impl Cpu {
     /// Create a new Cpu instance and reset it
-    pub fn new(inter: Interconnect) -> Cpu {
+    pub fn new() -> Cpu {
         Cpu {
             regs: Registers::new(),
             halted: false,
-            interconnect: inter,
             ime: false,
             setdi: 0,
             setei: 0
@@ -36,23 +33,23 @@ impl Cpu {
     }
 
     /// create a new cpu instance for GBC and reset it
-    pub fn new_gbc(inter: Interconnect) -> Cpu {
+    pub fn new_gbc() -> Cpu {
         Cpu {
             regs: Registers::new_gbc(),
-            ..Cpu::new(inter)
+            ..Cpu::new()
         }
     }
 
     /// fetch one byte from the interconnect using PC
-    fn fetch_byte(&mut self) -> u8 {
-        let byte = self.interconnect.read_byte(self.regs.pc);
+    fn fetch_byte(&mut self, interconnect: &mut Interconnect) -> u8 {
+        let byte = interconnect.read_byte(self.regs.pc);
         self.regs.pc += 1;
         byte
     }
 
     /// fetch one word from the interconnect using PC
-    fn fetch_word(&mut self) -> u16 {
-        let word = self.interconnect.read_word(self.regs.pc);
+    fn fetch_word(&mut self, interconnect: &mut Interconnect) -> u16 {
+        let word = interconnect.read_word(self.regs.pc);
         self.regs.pc += 2;
         word
     }
@@ -78,29 +75,24 @@ impl Cpu {
         }
     }
 
-    /// start the CPU
-    pub fn run(&mut self) {
-        loop {
-            // TODO: remove this when implement the GDB
-            // println!("{:?}", self);
+    /// Run next intruction
+    pub fn next_trick(&mut self, interconnect: &mut Interconnect) -> u32 {
+        // TODO: remove this when implement the GDB
+        // println!("{:?}", self);
 
-            // process the next instruction
-            let cycles = self.do_internal_cycle() * 4 as u32;
-
-            // do the interconnect cycle
-            self.interconnect.do_cycle(cycles);
-        }
+        // process the next instruction
+        self.do_internal_cycle(interconnect) * 4 as u32
     }
 
     /// do the internal CPU cycle
-    fn do_internal_cycle(&mut self) -> u32 {
+    fn do_internal_cycle(&mut self, interconnect: &mut Interconnect) -> u32 {
         // update IME if needed
         self.updateIme();
 
         // check if some interrupt needs to be handled.
         // if a interrupt was handled return with the
         // number of ticks
-        match self.handle_interrupt() {
+        match self.handle_interrupt(interconnect) {
             // no interrupt handled
             0 => {}
 
@@ -115,30 +107,30 @@ impl Cpu {
             // emulate an nop instruction
             1
         } else {
-            self.process_next_instruction() as u32
+            self.process_next_instruction(interconnect) as u32
         }
     }
 
     /// push a value to stack
-    fn stack_push(&mut self, value: u16) {
+    fn stack_push(&mut self, value: u16, interconnect: &mut Interconnect) {
         self.regs.sp -= 2;
-        self.interconnect.write_word(self.regs.sp, value);
+        interconnect.write_word(self.regs.sp, value);
     }
 
     /// pop a value from stack
-    fn stack_pop(&mut self) -> u16 {
-        let value = self.interconnect.read_word(self.regs.sp);
+    fn stack_pop(&mut self, interconnect: &mut Interconnect) -> u16 {
+        let value = interconnect.read_word(self.regs.sp);
         self.regs.sp += 2;
         value
     }
 
     /// handle the interrupts
-    fn handle_interrupt(&mut self) -> u32 {
+    fn handle_interrupt(&mut self, interconnect: &mut Interconnect) -> u32 {
         // check if the interrupts are enabled
         if self.ime == false && self.halted == false { return 0 }
 
         // check if some interrupt are been fired
-        let triggered = self.interconnect.inte & self.interconnect.intf;
+        let triggered = interconnect.inte & interconnect.intf;
         if triggered == 0 { return 0 }
 
         self.halted = false;
@@ -150,11 +142,11 @@ impl Cpu {
         if n >= 5 { panic!("Invalid interrupt triggered"); }
 
         // clean up the interrupt
-        self.interconnect.intf &= !(1 << n);
+        interconnect.intf &= !(1 << n);
 
         // save the current program pointer
         let pc = self.regs.pc;
-        self.stack_push(pc);
+        self.stack_push(pc, interconnect);
 
         // change the PC value to the interrupt location
         // handler
@@ -164,9 +156,9 @@ impl Cpu {
         4
     }
 
-    fn process_next_instruction(&mut self) -> u8 {
+    fn process_next_instruction(&mut self, interconnect: &mut Interconnect) -> u8 {
         // fetch a byte from the PC address
-        let opcode = self.fetch_byte();
+        let opcode = self.fetch_byte(interconnect);
 
         // get current regs state
         let regs = self.regs;
@@ -176,13 +168,13 @@ impl Cpu {
             0x00 => { 1 }
             // LD (BC),nn
             0x01 => {
-                let word = self.fetch_word();
+                let word = self.fetch_word(interconnect);
                 self.regs.set_bc(word);
                 3
             }
             // LD (BC),A
             0x02 => {
-                self.interconnect.write_byte(regs.bc(), regs.a);
+                interconnect.write_byte(regs.bc(), regs.a);
                 2
             }
             // INC BC
@@ -202,13 +194,13 @@ impl Cpu {
             }
             // LD (nn),SP
             0x08 => {
-                let word = self.fetch_word();
-                self.interconnect.write_word(word, regs.sp);
+                let word = self.fetch_word(interconnect);
+                interconnect.write_word(word, regs.sp);
                 5
             }
             // LD B,n
             0x06 => {
-                self.regs.b = self.fetch_byte();
+                self.regs.b = self.fetch_byte(interconnect);
                 2
             }
             // ADD HL, BC
@@ -223,7 +215,7 @@ impl Cpu {
             }
             // LD DE,nn
             0x11 => {
-                let word = self.fetch_word();
+                let word = self.fetch_word(interconnect);
                 self.regs.set_de(word);
                 3
             }
@@ -234,7 +226,7 @@ impl Cpu {
             }
             // LD A, (BC)
             0x0a => {
-                self.regs.a = self.interconnect.read_byte(regs.bc());
+                self.regs.a = interconnect.read_byte(regs.bc());
                 2
             }
             // INC C
@@ -249,12 +241,12 @@ impl Cpu {
             }
             // STOP
             0x10 => {
-                self.interconnect.switch_speed();
+                interconnect.switch_speed();
                 1
             },
             // LD (DE),A
             0x12 => {
-                self.interconnect.write_byte(regs.de(), regs.a);
+                interconnect.write_byte(regs.de(), regs.a);
                 2
             }
             // INC DE
@@ -280,7 +272,7 @@ impl Cpu {
             }
             // JP (HL)
             0x18 => {
-                self.regs.pc = regs.pc + (self.fetch_byte() as u16);
+                self.regs.pc = regs.pc + (self.fetch_byte(interconnect) as u16);
                 1
             }
             // DEC DE
@@ -300,28 +292,28 @@ impl Cpu {
             }
             // LD C,n
             0x0e => {
-                self.regs.c = self.fetch_byte();
+                self.regs.c = self.fetch_byte(interconnect);
                 2
             }
             // LD D,n
             0x16 => {
-                self.regs.d = self.fetch_byte();
+                self.regs.d = self.fetch_byte(interconnect);
                 2
             }
             // LD A,(DE)
             0x1a => {
-                self.regs.a = self.interconnect.read_byte(regs.de());
+                self.regs.a = interconnect.read_byte(regs.de());
                 2
             }
             // LD E,n
             0x1e => {
-                self.regs.e = self.fetch_byte();
+                self.regs.e = self.fetch_byte(interconnect);
                 2
             }
             // JR NZ,n
             0x20 => {
                 if !self.regs.flags.z {
-                    self.cpu_jr();
+                    self.cpu_jr(interconnect);
                     3
                 } else {
                     self.regs.pc += 1;
@@ -330,13 +322,13 @@ impl Cpu {
             }
             // LD HL,nn
             0x21 => {
-                let word = self.fetch_word();
+                let word = self.fetch_word(interconnect);
                 self.regs.set_hl(word);
                 3
             }
             // LD (HLI),A
             0x22 => {
-                self.interconnect.write_byte(self.regs.hli(), regs.a);
+                interconnect.write_byte(self.regs.hli(), regs.a);
                 2
             }
             // INC HL
@@ -356,7 +348,7 @@ impl Cpu {
             }
             // LD H,n
             0x26 => {
-                self.regs.h = self.fetch_byte();
+                self.regs.h = self.fetch_byte(interconnect);
                 2
             }
             // DAA
@@ -367,7 +359,7 @@ impl Cpu {
             // JR cc,n
             0x28 => {
                 if self.regs.flags.z {
-                    self.cpu_jr();
+                    self.cpu_jr(interconnect);
                     3
                 } else {
                     self.regs.pc += 1;
@@ -381,7 +373,7 @@ impl Cpu {
             }
             // LDI A,(HL)
             0x2a => {
-                self.regs.a = self.interconnect.read_byte(self.regs.hli());
+                self.regs.a = interconnect.read_byte(self.regs.hli());
                 2
             }
             // DEC HL
@@ -396,18 +388,18 @@ impl Cpu {
             }
             // LD L,n
             0x2e => {
-                self.regs.l = self.fetch_byte();
+                self.regs.l = self.fetch_byte(interconnect);
                 2
             }
             // RET
             0xc9 => {
-                self.regs.pc = self.stack_pop();
+                self.regs.pc = self.stack_pop(interconnect);
                 4
             }
             // JR NC,n
             0x30 => {
                 if !self.regs.flags.c {
-                    self.cpu_jr();
+                    self.cpu_jr(interconnect);
                     3
                 } else {
                     self.regs.pc += 1;
@@ -416,13 +408,13 @@ impl Cpu {
             }
             // LD SP,nn
             0x31 => {
-                let word = self.fetch_word();
+                let word = self.fetch_word(interconnect);
                 self.regs.set_sp(word);
                 3
             }
             // LD (HLD)
             0x32 => {
-                self.interconnect.write_byte(self.regs.hld(), regs.a);
+                interconnect.write_byte(self.regs.hld(), regs.a);
                 2
             }
             // INC SP
@@ -432,28 +424,28 @@ impl Cpu {
             }
             // INC (HL)
             0x34 => {
-                let mut value = self.interconnect.read_byte(regs.hl());
+                let mut value = interconnect.read_byte(regs.hl());
                 value = self.alu_inc(value);
-                self.interconnect.write_byte(regs.hl(), value);
+                interconnect.write_byte(regs.hl(), value);
                 3
             }
             // DEC (HL)
             0x35 => {
-                let mut value = self.interconnect.read_byte(regs.hl());
+                let mut value = interconnect.read_byte(regs.hl());
                 value = self.alu_dec(value);
-                self.interconnect.write_byte(regs.hl(), value);
+                interconnect.write_byte(regs.hl(), value);
                 3
             }
             // LD (HL),n
             0x36 => {
-                let byte = self.fetch_byte();
-                self.interconnect.write_byte(regs.hl(), byte);
+                let byte = self.fetch_byte(interconnect);
+                interconnect.write_byte(regs.hl(), byte);
                 3
             }
             // JR C,n
             0x38 => {
                 if self.regs.flags.c {
-                    self.cpu_jr();
+                    self.cpu_jr(interconnect);
                     3
                 } else {
                     self.regs.pc += 1;
@@ -467,7 +459,7 @@ impl Cpu {
             }
             // LD A,(HLD)
             0x3a => {
-                self.regs.a = self.interconnect.read_byte(self.regs.hld());
+                self.regs.a = interconnect.read_byte(self.regs.hld());
                 2
             }
             // DEC SP
@@ -487,7 +479,7 @@ impl Cpu {
             }
             // LD A,n
             0x3e => {
-                self.regs.a = self.fetch_byte();
+                self.regs.a = self.fetch_byte(interconnect);
                 2
             }
             // LD B,B
@@ -519,7 +511,7 @@ impl Cpu {
             }
             // LD B,(HL)
             0x46 => {
-                self.regs.b = self.interconnect.read_byte(regs.hl());
+                self.regs.b = interconnect.read_byte(regs.hl());
                 2
             }
             // LD B,A
@@ -556,7 +548,7 @@ impl Cpu {
             }
             // LD C,(HL)
             0x4e => {
-                self.regs.c = self.interconnect.read_byte(regs.hl());
+                self.regs.c = interconnect.read_byte(regs.hl());
                 2
             }
             // LD C,A
@@ -593,7 +585,7 @@ impl Cpu {
             }
             // LD D,(HL)
             0x56 => {
-                self.regs.d = self.interconnect.read_byte(regs.hl());
+                self.regs.d = interconnect.read_byte(regs.hl());
                 2
             }
             // LD D,A
@@ -630,7 +622,7 @@ impl Cpu {
             }
             // LD E,(HL)
             0x5e => {
-                self.regs.e = self.interconnect.read_byte(regs.hl());
+                self.regs.e = interconnect.read_byte(regs.hl());
                 2
             }
             // LD E,A
@@ -667,7 +659,7 @@ impl Cpu {
             }
             // LD H,(HL)
             0x66 => {
-                self.regs.h = self.interconnect.read_byte(regs.hl());
+                self.regs.h = interconnect.read_byte(regs.hl());
                 2
             }
             // LD H,A
@@ -704,7 +696,7 @@ impl Cpu {
             0x6d => { 1 }
             // LD L,(HL)
             0x6e => {
-                self.regs.l = self.interconnect.read_byte(regs.hl());
+                self.regs.l = interconnect.read_byte(regs.hl());
                 2
             }
             // LD L,A
@@ -714,32 +706,32 @@ impl Cpu {
             }
             // LD (HL),B
             0x70 => {
-                self.interconnect.write_byte(regs.hl(), regs.b);
+                interconnect.write_byte(regs.hl(), regs.b);
                 2
             }
             // LD (HL),C
             0x71 => {
-                self.interconnect.write_byte(regs.hl(), regs.c);
+                interconnect.write_byte(regs.hl(), regs.c);
                 2
             }
             // LD (HL),D
             0x72 => {
-                self.interconnect.write_byte(regs.hl(), regs.d);
+                interconnect.write_byte(regs.hl(), regs.d);
                 2
             }
             // LD (HL),E
             0x73 => {
-                self.interconnect.write_byte(regs.hl(), regs.e);
+                interconnect.write_byte(regs.hl(), regs.e);
                 2
             }
             // LD (HL),H
             0x74 => {
-                self.interconnect.write_byte(regs.hl(), regs.h);
+                interconnect.write_byte(regs.hl(), regs.h);
                 2
             }
             // LD (HL),L
             0x75 => {
-                self.interconnect.write_byte(regs.hl(), regs.l);
+                interconnect.write_byte(regs.hl(), regs.l);
                 2
             }
             // HALT
@@ -749,7 +741,7 @@ impl Cpu {
             }
             // LD (HL),A
             0x77 => {
-                self.interconnect.write_byte(regs.hl(), regs.a);
+                interconnect.write_byte(regs.hl(), regs.a);
                 2
             }
             // LD A,B
@@ -784,7 +776,7 @@ impl Cpu {
             }
             // LD A,(HL)
             0x7e => {
-                self.regs.a = self.interconnect.read_byte(regs.hl());
+                self.regs.a = interconnect.read_byte(regs.hl());
                 2
             }
             // LD A,A
@@ -821,7 +813,7 @@ impl Cpu {
             }
             // ADD A,(HL)
             0x86 => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_add(value, true);
                 2
             }
@@ -862,7 +854,7 @@ impl Cpu {
             }
             // ADC A,(HL)
             0x8e => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_add(value, true);
                 2
             }
@@ -903,7 +895,7 @@ impl Cpu {
             }
             // SUB (HL)
             0x96 => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_sub(value, false);
                 2
             }
@@ -939,7 +931,7 @@ impl Cpu {
             }
             // SBC (HL)
             0x9e => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_sub(value, true);
                 2
             }
@@ -985,7 +977,7 @@ impl Cpu {
             }
             // AND (HL)
             0xa6 => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_and(value);
                 1
             }
@@ -1021,7 +1013,7 @@ impl Cpu {
             }
             // AND (HL)
             0xae => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_and(value);
                 2
             }
@@ -1067,7 +1059,7 @@ impl Cpu {
             }
             // OR (HL)
             0xb6 => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_or(value);
                 2
             }
@@ -1108,7 +1100,7 @@ impl Cpu {
             }
             // CP (HL)
             0xbe => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 self.alu_cp(value);
                 1
             }
@@ -1119,124 +1111,124 @@ impl Cpu {
             }
             // POP BC
             0xc1 => {
-                let value = self.stack_pop();
+                let value = self.stack_pop(interconnect);
                 self.regs.set_bc(value);
                 3
             }
             // JP nn
             0xc3 => {
-                self.regs.pc = self.fetch_word();
+                self.regs.pc = self.fetch_word(interconnect);
                 4
             }
             // PUSH BC
             0xc5 => {
-                self.stack_push(regs.bc());
+                self.stack_push(regs.bc(), interconnect);
                 4
             }
             // ADD A,#
             0xc6 => {
-                let value = self.fetch_byte();
+                let value = self.fetch_byte(interconnect);
                 self.alu_add(value, false);
                 2
             }
             // CB Opcodes
-            0xcb => { self.process_cb_opcodes() }
+            0xcb => { self.process_cb_opcodes(interconnect) }
             // CALL nn
             0xcd => {
-                self.stack_push(regs.pc + 2);
-                let value = self.fetch_word();
+                self.stack_push(regs.pc + 2, interconnect);
+                let value = self.fetch_word(interconnect);
                 self.regs.pc = value;
                 6
             }
             // ADC A,#
             0xce => {
-                let value = self.fetch_byte();
+                let value = self.fetch_byte(interconnect);
                 self.alu_add(value, true);
                 2
             }
             // POP DE
             0xd1 => {
-                let value = self.stack_pop();
+                let value = self.stack_pop(interconnect);
                 self.regs.set_de(value);
                 3
             }
             // PUSH DE
             0xd5 => {
-                self.stack_push(regs.de());
+                self.stack_push(regs.de(), interconnect);
                 3
             }
             // SUB #
             0xd6 => {
-                let value = self.fetch_byte();
+                let value = self.fetch_byte(interconnect);
                 self.alu_sub(value, false);
                 2
             }
             // SUC #
             0xde => {
-                let value = self.fetch_byte();
+                let value = self.fetch_byte(interconnect);
                 self.alu_sub(value, true);
                 2
             }
             // LDH (n),a
             0xe0 => {
-                let byte = self.fetch_byte() as u16;
-                self.interconnect.write_byte(0xff00 + byte, regs.a);
+                let byte = self.fetch_byte(interconnect) as u16;
+                interconnect.write_byte(0xff00 + byte, regs.a);
                 3
             }
             // POP HL
             0xe1 => {
-                let value = self.stack_pop();
+                let value = self.stack_pop(interconnect);
                 self.regs.set_hl(value);
                 3
             }
             // LD (0xff00+C),A
             0xe2 => {
-                self.interconnect.write_byte(0xff00 | regs.c as u16, regs.a);
+                interconnect.write_byte(0xff00 | regs.c as u16, regs.a);
                 2
             }
             // PUSH hl
             0xe5 => {
-                self.stack_push(regs.hl());
+                self.stack_push(regs.hl(), interconnect);
                 3
             }
             // AND #
             0xe6 => {
-                let value = self.fetch_byte();
+                let value = self.fetch_byte(interconnect);
                 self.alu_and(value);
                 1
             }
             // ADD SP, #
             0xe8 => {
-                self.regs.sp = self.alu_add16imm(regs.sp);
+                self.regs.sp = self.alu_add16imm(regs.sp, interconnect);
                 4
             }
             // LD (nn),A
             0xea => {
-                let word = self.fetch_word();
-                self.interconnect.write_byte(word, regs.a);
+                let word = self.fetch_word(interconnect);
+                interconnect.write_byte(word, regs.a);
                 3
             }
             // AND #
             0xee => {
-                let value = self.fetch_byte();
+                let value = self.fetch_byte(interconnect);
                 self.alu_and(value);
                 2
             }
             // LDH A,(n)
             0xf0 => {
-                let address = 0xff00 | self.fetch_byte() as u16;
-                self.regs.a = self.interconnect.read_byte(address);
+                let address = 0xff00 | self.fetch_byte(interconnect) as u16;
+                self.regs.a = interconnect.read_byte(address);
                 3
             }
             // POP AF
             0xf1 => {
-                let value = self.stack_pop();
+                let value = self.stack_pop(interconnect);
                 self.regs.set_af(value);
                 3
             }
             // LD A,(0xff00+C)
             0xf2 => {
-                self.regs.a = self.interconnect.read_byte(0xff00 | regs.c as u16);
+                self.regs.a = interconnect.read_byte(0xff00 | regs.c as u16);
                 2
             }
             // DI
@@ -1246,18 +1238,18 @@ impl Cpu {
             }
             // PUSH AF
             0xf5 => {
-                self.stack_push(regs.af());
+                self.stack_push(regs.af(), interconnect);
                 4
             }
             // OR #
             0xf6 => {
-                let value = self.fetch_byte();
+                let value = self.fetch_byte(interconnect);
                 self.alu_or(value);
                 2
             }
             // LDHL SP,n
             0xf8 => {
-                let result = self.alu_add16imm(regs.sp);
+                let result = self.alu_add16imm(regs.sp, interconnect);
                 self.regs.set_hl(result);
                 2
             }
@@ -1268,8 +1260,8 @@ impl Cpu {
             }
             // LD A,(nn)
             0xfa => {
-                let word = self.fetch_word();
-                self.regs.a = self.interconnect.read_byte(word);
+                let word = self.fetch_word(interconnect);
+                self.regs.a = interconnect.read_byte(word);
                 3
             }
             // EI
@@ -1279,7 +1271,7 @@ impl Cpu {
             }
             // CP n
             0xfe => {
-                let byte = self.fetch_byte();
+                let byte = self.fetch_byte(interconnect);
                 self.alu_cp(byte);
                 2
             }
@@ -1287,9 +1279,9 @@ impl Cpu {
         }
     }
 
-    fn process_cb_opcodes(&mut self) -> u8 {
+    fn process_cb_opcodes(&mut self, interconnect: &mut Interconnect) -> u8 {
         // get opcode
-        let opcode = self.fetch_byte();
+        let opcode = self.fetch_byte(interconnect);
 
         // save the current regs start
         let regs = self.regs;
@@ -1309,9 +1301,9 @@ impl Cpu {
             0x15 => { self.regs.l = self.alu_rl(regs.l); 2 }
             // RL (HL)
             0x16 => {
-                let value = self.interconnect.read_byte(regs.hl());
+                let value = interconnect.read_byte(regs.hl());
                 let new_value = self.alu_rl(value);
-                self.interconnect.write_byte(regs.hl(), new_value);
+                interconnect.write_byte(regs.hl(), new_value);
                 4
             }
             // RL A
@@ -1321,8 +1313,8 @@ impl Cpu {
             // SET 7,HL
             0xfe => {
                 let address = regs.hl();
-                let value = self.interconnect.read_byte(address) | (1 << 7);
-                self.interconnect.write_byte(address, value);
+                let value = interconnect.read_byte(address) | (1 << 7);
+                interconnect.write_byte(address, value);
                 4
             }
             _ => panic!("Unrecognized CB opcode {:#x}", opcode),
@@ -1440,9 +1432,9 @@ impl Cpu {
     }
 
     /// add immediate to sp and update CPU flags
-    fn alu_add16imm(&mut self, sp: u16) -> u16 {
+    fn alu_add16imm(&mut self, sp: u16, interconnect: &mut Interconnect) -> u16 {
         // cast byte to the correct type
-        let byte = self.fetch_byte() as i8 as i16 as u16;
+        let byte = self.fetch_byte(interconnect) as i8 as i16 as u16;
 
         // update the CPU flags
         self.regs.flags.z = false;
@@ -1538,9 +1530,9 @@ impl Cpu {
     }
 
     /// process the relative jump
-    fn cpu_jr(&mut self) {
+    fn cpu_jr(&mut self, interconnect: &mut Interconnect) {
         // get the offset
-        let off = self.fetch_byte() as i8;
+        let off = self.fetch_byte(interconnect) as i8;
 
         // get program counter
         let mut pc = self.regs.pc as i16;
@@ -1553,6 +1545,7 @@ impl Cpu {
     }
 }
 
+/*
 /// CPU Debugger
 impl Debug for Cpu {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
@@ -1613,3 +1606,4 @@ impl Debug for Cpu {
         Ok(())
     }
 }
+*/
