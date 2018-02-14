@@ -5,7 +5,10 @@ use sdl2::{Sdl, VideoSubsystem};
 use imgui::ImGui;
 use imgui_glium_renderer;
 
+use cartridge::Cartridge;
 use self::renderer::Renderer;
+use machine::Machine;
+use self::gui::Screen;
 
 mod renderer;
 mod gui;
@@ -50,10 +53,12 @@ pub struct Controller {
     display: Display,
     renderer: Renderer,
     gui_renderer: imgui_glium_renderer::Renderer,
+    cartridge: Cartridge,
+    imgui: ImGui
 }
 
 impl Controller {
-    pub fn new(x: u32, y: u32) -> ControllerResult<Self> {
+    pub fn new(cartridge: Cartridge) -> ControllerResult<Self> {
         let sdl = sdl2::init()?;
         let sdl_video = sdl.video()?;
 
@@ -76,7 +81,31 @@ impl Controller {
             sdl_video,
             display,
             renderer,
-            gui_renderer
+            gui_renderer,
+            cartridge,
+            imgui
         })
+    }
+
+    pub fn main(mut self) {
+        let mut screen = gui::InGameScreen::new();
+        let mut machine = Machine::new(self.cartridge);
+
+        // Draw the screen
+        let mut target = self.display.draw();
+        target.clear_color(0.0, 0.0, 0.0, 1.0);
+
+        // Draw the window frame
+        let (width, height) = target.get_dimensions();
+        let ui = self.imgui.frame((width, height), (width, height), 0.1);
+
+        // TODO: process the next instruction
+
+        screen.render(&ui);
+
+        target.finish();
+
+        loop {
+        }
     }
 }

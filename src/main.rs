@@ -27,6 +27,7 @@ mod gpu;
 mod frontend;
 mod sound;
 mod cartridge;
+mod machine;
 
 fn main() {
     // get first command line argument (rom path)
@@ -38,19 +39,11 @@ fn main() {
     // create cartridge
     let mut cartridge = Cartridge::new(rom_buf);
 
-    Controller::new(200, 200);
-
-    // create GPU
-    let mut gpu = Gpu::new();
-
-    // create a new Interconnect instance
-    let mut interconnect = Interconnect::new(cartridge, gpu);
-
-    // create a new Cpu instance
-    let mut cpu = Cpu::new(interconnect);
-
-    // start CPU
-    cpu.run();
+    // Start the controller
+    match Controller::new(cartridge) {
+        Ok(controller) => controller.main(),
+        Err(e) => println!("Error :(")
+    };
 }
 
 /// Read ROM as a 8-bit integer vector
