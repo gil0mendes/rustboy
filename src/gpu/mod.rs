@@ -1,128 +1,178 @@
+use self::types::Color;
+
+mod types;
+
 const VOAM_SIZE: usize = 0xa0;
 
-#[derive(Debug)]
+const ACCESS_OAM_CYCLES: isize = 21;
+const CHARACTER_RAM_TILES: usize = 384;
+const OAM_SPRITES: usize = 40;
+const TILE_MAP_SIZE: usize = 0x400;
+
+#[derive(Clone, Copy)]
+struct Tile {
+    data: [u8; 16]
+}
+
+impl Tile {
+    fn new() -> Tile {
+        Tile {
+            data: [0; 16]
+        }
+    }
+}
+
+bitflags!(
+    struct SpriteFlags: u8 {
+        const UNUSED_MASK = 0b_0000_1111;
+        const PALETTE     = 0b_0001_0000;
+        const FLIPX       = 0b_0010_0000;
+        const FLIPY       = 0b_0100_0000;
+        const PRIORITY    = 0b_1000_0000;
+    }
+);
+
+#[derive(Clone, Copy)]
+struct Sprite {
+    x: u8,
+    y: u8,
+    tile_num: u8,
+    flags: SpriteFlags,
+}
+
+impl Sprite {
+    fn new() -> Self {
+        Self {
+            x: 0,
+            y: 0,
+            tile_num: 0,
+            flags: SpriteFlags::empty(),
+        }
+    }
+}
+
+bitflags!(
+  struct Control: u8 {
+    const BG_ON = 1 << 0;
+    const OBJ_ON = 1 << 1;
+    const OBJ_SIZE = 1 << 2;
+    const BG_MAP = 1 << 3;
+    const BG_ADDR = 1 << 4;
+    const WINDOW_ON = 1 << 5;
+    const WINDOW_MAP = 1 << 6;
+    const LCD_ON = 1 << 7;
+  }
+);
+
+bitflags!(
+  struct Stat: u8 {
+    const COMPARE = 1 << 2;
+    const HBLANK_INT = 1 << 3;
+    const VBLANK_INT = 1 << 4;
+    const ACCESS_OAM_INT = 1 << 5;
+    const COMPARE_INT = 1 << 6;
+  }
+);
+
+struct Palette {
+    off: Color,
+    light: Color,
+    dark: Color,
+    on: Color,
+    bits: u8
+}
+
+impl Palette {
+    fn new() -> Self {
+        Palette {
+            off: Color::On,
+            light: Color::On,
+            dark: Color::On,
+            on: Color::On,
+            bits: 0xff
+        }
+    }
+
+    fn get(&self, color: &Color) -> Color {
+        match *color {
+            Color::Off => self.off,
+            Color::Light => self.light,
+            Color::Dark => self.dark,
+            Color::On => self.on
+        }
+    }
+}
+
+#[derive(PartialEq, Eq)]
+enum Mode {
+    AccessOam,
+    AccessVram,
+    HBlank,
+    VBlank
+}
+
 pub struct Gpu {
     /// LCDC (LCD Control)
-    control: u8,
+    control: Control,
     /// STATE (LCDC Status)
-    status: u8,
-    /// SCY (Scroll Y)
-    scy: u8,
-    /// SCX (Scroll X)
-    scx: u8,
-    // LY (LCDC Y-Coordinate)
-    ly: u8,
-    // LYC (LY Compare)
-    lyc: u8,
-    // WY (Window Y Position),
-    wy: u8,
-    // WX (Window X Position minus 7),
-    wx: u8,
-    // BGP (BG Pallet Data)
-    bgp: u8,
-    // OBP0
-    obp0: u8,
-    // OBP1
-    obp1: u8,
-    /// VRAM
-    vram: Vec<u8>,
-    /// OAM
-    voam: Vec<u8>,
-    /// Select VRAM bank
-    vrambank: u8,
+    status: Stat,
+    /// Current line
+    current_line: u8,
+    /// Compare line
+    compare_line: u8,
+    /// Scroll X
+    scroll_x: u8,
+    /// Scroll Y
+    scroll_y: u8,
+    /// Window X Position
+    window_x: u8,
+    /// Window Y Position,
+    window_y: u8,
+    /// Background palette
+    bg_palette: Palette,
+    /// Object palette 0
+    obj_palette0: Palette,
+    /// Object palette 1
+    obj_palette1: Palette,
+    mode: Mode,
+    cycles: isize,
+    character_ram: [Tile; CHARACTER_RAM_TILES],
+    oam: [Sprite; OAM_SPRITES],
+    tile_map1: [u8; TILE_MAP_SIZE],
+    tile_map2: [u8; TILE_MAP_SIZE],
+    pub back_buffer: Box<types::ScreenBuffer>
 }
 
 impl Gpu {
-    /// create a new GPU instance
     pub fn new() -> Gpu {
         Gpu {
-            voam: vec![0x20; VOAM_SIZE],
-            vram: vec![0xca; 0x2000],
-            control: 0,
-            status: 0,
-            scy: 0,
-            scx: 0,
-            ly: 0,
-            lyc: 0,
-            wy: 0,
-            wx: 0,
-            bgp: 0,
-            obp0: 0,
-            obp1: 0,
-            vrambank: 1
+            control: Control::empty(),
+            status: Stat::empty(),
+            current_line: 0,
+            compare_line: 0,
+            scroll_x: 0,
+            scroll_y: 0,
+            window_x: 0,
+            window_y: 0,
+            bg_palette: Palette::new(),
+            obj_palette0: Palette::new(),
+            obj_palette1: Palette::new(),
+            mode: Mode::AccessOam,
+            cycles: ACCESS_OAM_CYCLES,
+            character_ram: [Tile::new(); CHARACTER_RAM_TILES],
+            oam: [Sprite::new(); OAM_SPRITES],
+            tile_map1: [0; TILE_MAP_SIZE],
+            tile_map2: [0; TILE_MAP_SIZE],
+            back_buffer: Box::new(types::SCREEN_EMPTY),
         }
     }
 
-    /// Read a byte from the VRAM
-    pub fn vram(&self, address: u16) -> u8 {
-        self.vram[address as usize]
+    pub fn write_character_ram(&mut self, address: u16, value: u8) {
     }
 
-    /// Write a byte to the VRAM
-    pub fn set_vram(&mut self, address: u16, value: u8) {
-        self.vram[address as usize] = value;
+    pub fn write_tile_map1(&mut self, address: u16, value: u8) {
     }
 
-
-    // --- OLD
-
-    /// read one byte from the GPU memory area
-    pub fn read_byte(&self, address: u16) -> u8 {
-        match address {
-            // control
-            0x40 => self.control,
-            // Status
-            0x41 => self.status,
-            // SCY
-            0x42 => self.scy,
-            // SCX
-            0x43 => self.scx,
-            // LY
-            0x44 => self.ly,
-            // LYC
-            0x45 => self.lyc,
-            // BGP
-            0x47 => self.bgp,
-            // OBP0
-            0x48 => self.obp0,
-            // OBP1
-            0x49 => self.obp1,
-            // WY
-            0x4a => self.wy,
-            // WX
-            0x4b => self.wx,
-            // Other addresses
-            _ => panic!("GPU can read {:#x} address", address)
-        }
-    }
-
-    /// write one byte to the GPU memory area
-    pub fn write_byte(&mut self, address: u16, value: u8) {
-        match address {
-            // control
-            0x40 => self.control = value,
-            // Status
-            0x41 => self.status = value,
-            // SCY
-            0x42 => self.scy = value,
-            // SCX
-            0x43 => self.scx = value,
-            // LY - line (only read are supported)
-            0x44 => {}
-            // LYC
-            0x45 => self.lyc = value,
-            // BGP
-            0x47 => self.bgp = value,
-            // OBP0
-            0x48 => self.obp0 = value,
-            // OBP1
-            0x49 => self.obp1 = value,
-            // WY
-            0x4a => self.wy = value,
-            // WX
-            0x4b => self.wx = value,
-            // Other addresses
-            _ => panic!("GPU can't write on {:#x} address", address),
-        }
+    pub fn write_tile_map2(&mut self, address: u16, value: u8) {
     }
 }

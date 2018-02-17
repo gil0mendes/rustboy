@@ -2,6 +2,7 @@ use glium::{Api, Surface, SwapBuffersError, Version};
 use glium_sdl2::{Display, DisplayBuild, GliumSdl2Error};
 use sdl2;
 use sdl2::{Sdl, VideoSubsystem};
+use sdl2::video::gl_attr::GLAttr;
 use imgui::ImGui;
 use imgui_glium_renderer;
 
@@ -62,7 +63,7 @@ impl Controller {
         let sdl = sdl2::init()?;
         let sdl_video = sdl.video()?;
 
-        // configure_gl_attr(&mut sdl_video.gl_attr());
+        configure_gl_attr(&mut sdl_video.gl_attr());
 
         let display = sdl_video.window("RustBoy", 640, 576)
             .opengl()
@@ -91,21 +92,32 @@ impl Controller {
         let mut screen = gui::InGameScreen::new();
         let mut machine = Machine::new(self.cartridge);
 
-        // Draw the screen
-        let mut target = self.display.draw();
-        target.clear_color(0.0, 0.0, 0.0, 1.0);
-
-        // Draw the window frame
-        let (width, height) = target.get_dimensions();
-        let ui = self.imgui.frame((width, height), (width, height), 0.1);
-
         'main: loop {
+            // Draw the screen
+            let mut target = self.display.draw();
+            target.clear_color(0.0, 0.0, 0.0, 1.0);
+
+            // Draw the window frame
+            let (width, height) = target.get_dimensions();
+            let ui = self.imgui.frame((width, height), (width, height), 0.1);
+
             // process the next instruction
-            machine.emulate();
+//            machine.emulate();
 
             screen.render(&ui);
+            target.finish();
         }
-
-        target.finish();
     }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure_gl_attr(_: &mut GLAttr) { }
+
+#[cfg(target_os = "macos")]
+fn configure_gl_attr(gl_attr: &mut GLAttr) {
+    use sdl2::video::GLProfile;
+    gl_attr.set_context_major_version(3);
+    gl_attr.set_context_minor_version(2);
+    gl_attr.set_context_profile(GLProfile::Core);
+    gl_attr.set_context_flags().forward_compatible().set();
 }

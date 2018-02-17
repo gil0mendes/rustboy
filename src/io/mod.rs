@@ -38,7 +38,7 @@ pub struct Interconnect {
     // 0-page RAM
     zpage: Ram,
     // GPU
-    gpu: Gpu,
+    pub gpu: Gpu,
     // Timer
     timer: Timer,
     // Sound
@@ -114,9 +114,9 @@ impl Interconnect {
         }
 
         // VRAM
-        if let Some(off) = map::in_range(address, map::VRAM) {
+        /*if let Some(off) = map::in_range(address, map::VRAM) {
             return self.gpu.vram(off);
-        }
+        }*/
 
         // RAM bank
         if let Some(off) = map::in_range(address, map::RAM_BANK) {
@@ -176,9 +176,19 @@ impl Interconnect {
             return self.cartridge.set_rom_byte(off, value);
         }
 
-        // VRAM
-        if let Some(off) = map::in_range(address, map::VRAM) {
-            return self.gpu.set_vram(off, value);
+        // GPU Character RAM
+        if let Some(off) = map::in_range(address, map::CHAR_RAM) {
+            return self.gpu.write_character_ram(off, value);
+        }
+
+        // GPU Tile Map 1
+        if let Some(off) = map::in_range(address, map::V_TILE_MAP1) {
+            return self.gpu.write_tile_map1(off, value);
+        }
+
+        // GPU Tile Map 2
+        if let Some(off) = map::in_range(address, map::V_TILE_MAP2) {
+            return self.gpu.write_tile_map2(off, value);
         }
 
         // RAM BANK
@@ -258,7 +268,7 @@ impl Interconnect {
                 0x00
             },
             // GPU registers
-            0x40 ... 0x4b => self.gpu.read_byte(address),
+//            0x40 ... 0x4b => self.gpu.read_byte(address),
             _ => 0x00
         }
     }
@@ -276,8 +286,6 @@ impl Interconnect {
             0x0f => self.intf = value,
             // Sound registers
             0x10 ... 0x3f => self.sound.write_byte(address, value),
-            // GPU registers
-            0x40 ... 0x4b => self.gpu.write_byte(address, value),
             _ => {
                 panic!("Writing to na IO address not handled: {:04x}", address);
             }

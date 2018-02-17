@@ -12,6 +12,7 @@ imgui = "0.0.18"
 imgui-glium-renderer = "0.0.18"
 log = "0.4"
 error-chain = "0.11"
+bitflags = "1.0"
 
 [dependencies.glium]
 version = "0.19"

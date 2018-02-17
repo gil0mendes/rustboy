@@ -27,4 +27,8 @@ impl Machine {
         // Do the interconnect cycle
         self.interconnect.do_cycle(cycles);
     }
+
+    pub fn screen_buffer(&self) -> Vec<u8> {
+        unimplemented!()
+    }
 }

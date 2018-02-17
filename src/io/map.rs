@@ -2,8 +2,12 @@
 
 /// ROM
 pub const ROM: (u16, u16) = (0x0000, 0x7fff);
-/// Video RAM
-pub const VRAM: (u16, u16) = (0x8000, 0x9fff);
+/// Video Character RAM
+pub const CHAR_RAM: (u16, u16) = (0x8000, 0x97ff);
+/// Video Tile Map 1
+pub const V_TILE_MAP1: (u16, u16) = (0x9800, 0x9bff);
+/// Video Tile Map 2
+pub const V_TILE_MAP2: (u16, u16) = (0x9c00, 0x9fff);
 /// RAM Bank N
 pub const RAM_BANK: (u16, u16) = (0xa000, 0xbfff);
 /// Internal RAM
