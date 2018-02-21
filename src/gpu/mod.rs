@@ -8,6 +8,7 @@ const ACCESS_OAM_CYCLES: isize = 21;
 const CHARACTER_RAM_TILES: usize = 384;
 const OAM_SPRITES: usize = 40;
 const TILE_MAP_SIZE: usize = 0x400;
+const UNDEFINED_READ: u8 = 0xff;
 
 #[derive(Clone, Copy)]
 struct Tile {
@@ -185,6 +186,12 @@ impl Gpu {
         tile.data[address as usize % 16] = value;
     }
 
+    pub fn read_character_ram(&self, address: u16) -> u8 {
+        // TODO: check if we need to make some state validation
+        let tile = &self.character_ram[address as usize / 16];
+        tile.data[address as usize]
+    }
+
     pub fn write_tile_map1(&mut self, address: u16, value: u8) {
         if self.mode == Mode::AccessVram {
             return;
@@ -193,12 +200,28 @@ impl Gpu {
         self.tile_map1[address as usize] = value;
     }
 
+    pub fn read_tile_map1(&self, address: u16) -> u8 {
+        if self.mode == Mode::AccessVram {
+            return UNDEFINED_READ;
+        }
+
+        self.tile_map1[address as usize]
+    }
+
     pub fn write_tile_map2(&mut self, address: u16, value: u8) {
         if self.mode == Mode::AccessVram {
             return;
         }
 
         self.tile_map2[address as usize] = value;
+    }
+
+    pub fn read_tile_map2(&self, address: u16) -> u8 {
+        if self.mode == Mode::AccessVram {
+            return UNDEFINED_READ;
+        }
+
+        self.tile_map2[address as usize]
     }
 
     pub fn set_bg_palette(&mut self, value: u8) {

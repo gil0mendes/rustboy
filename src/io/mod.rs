@@ -114,9 +114,19 @@ impl Interconnect {
         }
 
         // VRAM
-        /*if let Some(off) = map::in_range(address, map::VRAM) {
-            return self.gpu.vram(off);
-        }*/
+        if let Some(off) = map::in_range(address, map::CHAR_RAM) {
+            return self.gpu.read_character_ram(address);
+        }
+
+        // V_TILE_MAP1
+        if let Some(off) = map::in_range(address, map::V_TILE_MAP1) {
+            return self.gpu.read_tile_map1(off);
+        }
+
+        // V_TILE_MAP2
+        if let Some(off) = map::in_range(address, map::V_TILE_MAP2) {
+            return self.gpu.read_tile_map2(off);
+        }
 
         // RAM bank
         if let Some(off) = map::in_range(address, map::RAM_BANK) {
