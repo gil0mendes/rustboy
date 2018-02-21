@@ -1545,7 +1545,6 @@ impl Cpu {
     }
 }
 
-/*
 /// CPU Debugger
 impl Debug for Cpu {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
@@ -1553,7 +1552,7 @@ impl Debug for Cpu {
         writeln!(f, "Registers");
 
         // Program Counter
-        writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02x} ...]",
+        /*writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02x} ...]",
                  self.regs.pc,
                  self.interconnect.read_byte(self.regs.pc),
                  self.interconnect.read_byte(self.regs.pc.wrapping_add(1)),
@@ -1564,7 +1563,7 @@ impl Debug for Cpu {
                  self.regs.sp,
                  self.interconnect.read_byte(self.regs.sp),
                  self.interconnect.read_byte(self.regs.sp.wrapping_add(1)),
-                 self.interconnect.read_byte(self.regs.sp.wrapping_add(2)));
+                 self.interconnect.read_byte(self.regs.sp.wrapping_add(2)));*/
 
         // registers
         writeln!(f, "  af: 0x{:04x}    a: {:3}    f: {:3}",
@@ -1582,13 +1581,14 @@ impl Debug for Cpu {
                  self.regs.d,
                  self.regs.e);
 
-        writeln!(f, "  hl: 0x{:04x}    h: {:3}    l: {:3}    \
-            [hl]: [{:02X} {:02X} ...]",
+        writeln!(f, "  hl: 0x{:04x}    h: {:3}    l: {:3}",
+//            [hl]: [{:02X} {:02X} ...]",
                  self.regs.hl(),
                  self.regs.h,
                  self.regs.l,
-                 self.interconnect.read_byte(self.regs.hl()),
-                 self.interconnect.read_byte(self.regs.hl() + 1));
+                 /*self.interconnect.read_byte(self.regs.hl()),
+                 self.interconnect.read_byte(self.regs.hl() + 1)*/
+        );
 
         // --- Flags
         writeln!(f, "Flags:");
@@ -1606,4 +1606,3 @@ impl Debug for Cpu {
         Ok(())
     }
 }
-*/

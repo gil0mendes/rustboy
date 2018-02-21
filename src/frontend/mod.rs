@@ -102,7 +102,7 @@ impl Controller {
             let ui = self.imgui.frame((width, height), (width, height), 0.1);
 
             // process the next instruction
-//            machine.emulate();
+            machine.emulate();
 
             screen.render(&ui);
             target.finish();

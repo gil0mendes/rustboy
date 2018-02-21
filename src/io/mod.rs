@@ -286,6 +286,7 @@ impl Interconnect {
             0x0f => self.intf = value,
             // Sound registers
             0x10 ... 0x3f => self.sound.write_byte(address, value),
+            0x47 => self.gpu.set_bg_palette(value),
             _ => {
                 panic!("Writing to na IO address not handled: {:04x}", address);
             }

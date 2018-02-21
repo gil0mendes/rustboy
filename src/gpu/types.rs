@@ -3,7 +3,7 @@ pub const SCREEN_HEIGHT: usize = 144;
 pub const SCREEN_PIXELS: usize = SCREEN_WIDTH * SCREEN_HEIGHT;
 pub const SCREEN_EMPTY: ScreenBuffer = [Color::Off; SCREEN_PIXELS];
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Color {
     Off = 0,
     Light = 1,

@@ -93,6 +93,15 @@ impl Palette {
         }
     }
 
+    fn set_bits(&mut self, value: u8) {
+        self.off = Color::from_u8((value >> 0)  & 0x3);
+        self.light = Color::from_u8((value >> 2) & 0x3);
+        self.dark= Color::from_u8((value >> 4) & 0x3);
+        self.on = Color::from_u8((value >> 6) & 0x3);
+
+        self.bits = value;
+    }
+
     fn get(&self, color: &Color) -> Color {
         match *color {
             Color::Off => self.off,
@@ -168,11 +177,31 @@ impl Gpu {
     }
 
     pub fn write_character_ram(&mut self, address: u16, value: u8) {
+        if self.mode == Mode::AccessVram {
+            return;
+        }
+
+        let tile = &mut self.character_ram[address as usize / 16];
+        tile.data[address as usize % 16] = value;
     }
 
     pub fn write_tile_map1(&mut self, address: u16, value: u8) {
+        if self.mode == Mode::AccessVram {
+            return;
+        }
+
+        self.tile_map1[address as usize] = value;
     }
 
     pub fn write_tile_map2(&mut self, address: u16, value: u8) {
+        if self.mode == Mode::AccessVram {
+            return;
+        }
+
+        self.tile_map2[address as usize] = value;
+    }
+
+    pub fn set_bg_palette(&mut self, value: u8) {
+        self.bg_palette.set_bits(value);
     }
 }
