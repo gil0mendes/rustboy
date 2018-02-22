@@ -1,6 +1,6 @@
 use self::types::Color;
 
-mod types;
+pub mod types;
 
 const VOAM_SIZE: usize = 0xa0;
 

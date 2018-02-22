@@ -104,6 +104,11 @@ impl Controller {
             // process the next instruction
             machine.emulate();
 
+            // TODO: only apply updates when VRAM changes
+            self.renderer.update_pixels(machine.screen_buffer());
+
+            // TODO: Draw GPU buffer on window
+
             screen.render(&ui);
             target.finish();
         }

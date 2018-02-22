@@ -1,6 +1,7 @@
 //! Input/Output abstraction for memory, ROM, and I/O mapped registers.
 
 use gpu::Gpu;
+use gpu::types;
 use self::ram::Ram;
 use self::io_map::*;
 use super::sound::AudioPlayer;
@@ -301,5 +302,9 @@ impl Interconnect {
                 panic!("Writing to na IO address not handled: {:04x}", address);
             }
         }
+    }
+
+    pub fn screen_buffer(&self) -> &types::ScreenBuffer {
+        &self.gpu.back_buffer
     }
 }

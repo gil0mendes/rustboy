@@ -1,6 +1,7 @@
 use cartridge::Cartridge;
 use cpu::Cpu;
 use gpu::Gpu;
+use gpu::types;
 use io::Interconnect;
 
 pub struct Machine {
@@ -28,7 +29,7 @@ impl Machine {
         self.interconnect.do_cycle(cycles);
     }
 
-    pub fn screen_buffer(&self) -> Vec<u8> {
-        unimplemented!()
+    pub fn screen_buffer(&self) -> &types::ScreenBuffer {
+        &self.interconnect.screen_buffer()
     }
 }
