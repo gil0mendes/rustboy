@@ -11,6 +11,7 @@ extern crate log;
 extern crate glium_sdl2;
 extern crate imgui;
 extern crate imgui_glium_renderer;
+extern crate nalgebra;
 
 use std::env;
 use std::fs::File;
@@ -44,7 +45,7 @@ fn main() {
     // Start the controller
     match Controller::new(cartridge) {
         Ok(controller) => controller.main(),
-        Err(e) => println!("Error :(")
+        Err(e) => println!("{:?}", e)
     };
 }
 

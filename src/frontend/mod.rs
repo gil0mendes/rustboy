@@ -107,7 +107,8 @@ impl Controller {
             // TODO: only apply updates when VRAM changes
             self.renderer.update_pixels(machine.screen_buffer());
 
-            // TODO: Draw GPU buffer on window
+            // Draw GPU buffer on window
+            self.renderer.draw(&mut target);
 
             screen.render(&ui);
             target.finish();
