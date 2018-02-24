@@ -113,12 +113,7 @@ impl Interconnect {
         let gputricks = ticks / cpudivider + vramticks;
         let cpu_ticks = ticks + vramticks * cpudivider;
 
-        // timer
-        self.timer.do_cycle(cpu_ticks);
-        let mut interrupt_status = self.irq.get_interrupt_enabled();
-        interrupt_status |= self.timer.interrupt;
-        self.irq.set_interrupt_enabled(interrupt_status);
-        self.timer.interrupt = 0;
+        self.timer.do_cycle(cpu_ticks, &mut self.irq);
 
         // TODO: Keypad
         

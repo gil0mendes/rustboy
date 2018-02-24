@@ -75,4 +75,8 @@ impl Irq {
   pub fn set_interrupt_enabled(&mut self, value: u8) {
     self.enabled = value;
   }
+
+  pub fn request_interrupt(&mut self, interrupt: Interrupt) {
+    self.flag |= InterruptType::from_bits_truncate(interrupt as u8);
+  }
 }

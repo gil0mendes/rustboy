@@ -1,3 +1,5 @@
+use super::irq::{Irq, Interrupt};
+
 #[derive(Debug)]
 pub struct Timer {
     // DIV (Divider Register)
@@ -8,8 +10,6 @@ pub struct Timer {
     modulo: u8,
     // TAC (Timer Control)
     control: u8,
-    // Interrupt
-    pub interrupt: u8,
     // Internal Ticks
     internal_ticks: u32
 }
@@ -22,7 +22,6 @@ impl Timer {
             counter: 0,
             modulo: 0,
             control: 0,
-            interrupt: 0,
             internal_ticks: 0
         }
     }
@@ -77,7 +76,7 @@ impl Timer {
     fn is_clock_enable(&self) -> bool { self.control & 0b100 == 1 }
 
     /// execute the timer cycle
-    pub fn do_cycle(&mut self, ticks: u32) {
+    pub fn do_cycle(&mut self, ticks: u32, irq: &mut Irq) {
         // we use the internal_ticks to check if we need
         // to increment the divider register
         self.internal_ticks += ticks;
@@ -96,7 +95,7 @@ impl Timer {
             // and then are loaded with the contents of TMA
             if self.counter == 0 {
                 self.counter = self.modulo;
-                self.interrupt |= 0b100;
+                irq.request_interrupt(Interrupt::TimerOverflow);
             }
         }
     }
