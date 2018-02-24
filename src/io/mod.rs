@@ -1,20 +1,22 @@
 //! Input/Output abstraction for memory, ROM, and I/O mapped registers.
 
+use cartridge::Cartridge;
 use gpu::Gpu;
 use gpu::types;
-use self::ram::Ram;
-use self::io_map::*;
 use super::sound::AudioPlayer;
 use super::sound::CpalPlayer;
 use super::sound::Sound;
-use self::timer::Timer;
+use self::io_map::*;
+use self::irq::{Irq, Interrupt};
+use self::ram::Ram;
 use self::serial::Serial;
-use cartridge::Cartridge;
+use self::timer::Timer;
 
 mod map;
 mod ram;
 pub mod io_map;
 mod bootrom;
+mod irq;
 
 mod timer;
 mod serial;
@@ -25,15 +27,20 @@ pub enum GbSpeed {
     Double,
 }
 
+#[derive(PartialEq)]
+enum DMAType {
+    OAM,
+    GDMA,
+    HDMA,
+}
+
 pub struct Interconnect {
     /// Cartridge
     cartridge: Cartridge,
     /// I/O ports
     io: Vec<u8>,
-    /// Interrupt Enable Register
-    pub inte: u8,
-    /// Interrupt Flag
-    pub intf: u8,
+    /// Interrupt module
+    pub irq: Irq,
     // Work RAM
     iram: Ram,
     // 0-page RAM
@@ -53,7 +60,12 @@ pub struct Interconnect {
     // Speed switch request
     speed_switch_req: bool,
     // Working RAM Bank
-    wrambank: usize
+    wrambank: usize,
+    // DMA state
+    dma_status: DMAType,
+    dma_src: u16,
+    dma_dst: u16,
+    dma_len: u8,
 }
 
 impl Interconnect {
@@ -64,8 +76,7 @@ impl Interconnect {
         Interconnect {
             cartridge: cartridge,
             io: vec![0x20; 0x7f],
-            inte: 0,
-            intf: 0,
+            irq: Irq::new(),
             iram: Ram::new(0x2000),
             zpage: Ram::new(0x7f),
             gpu: gpu,
@@ -75,18 +86,50 @@ impl Interconnect {
             bootrom: true,
             gbspeed: GbSpeed::Single,
             speed_switch_req: false,
-            wrambank: 1
+            wrambank: 1,
+            dma_status: DMAType::OAM,
+            dma_src: 0,
+            dma_dst: 0,
+            dma_len: 0xff,
         }
     }
 
-    pub fn do_cycle(&mut self, ticks: u32) {
-        // TODO: this must use Game Boy Speed and VRAM ticks
-        let cpu_ticks = ticks;
+    fn perform_vramdma(&mut self) -> u32 {
+        match self.dma_status {
+            DMAType::OAM => 0,
+            DMAType::GDMA => panic!("TODO: implement GDMA"),
+            DMAType::HDMA => panic!("TODO: implement HDMA"),
+        }
+    }
+
+    pub fn do_cycle(&mut self, ticks: u32) -> u32 {
+        let cpudivider = match self.gbspeed {
+            GbSpeed::Single => 1,
+            GbSpeed::Double => 2,
+        };
+
+        // Perform VRAM DMA and compute trick times
+        let vramticks = self.perform_vramdma();
+        let gputricks = ticks / cpudivider + vramticks;
+        let cpu_ticks = ticks + vramticks * cpudivider;
 
         // timer
         self.timer.do_cycle(cpu_ticks);
-        self.inte |= self.timer.interrupt;
+        let mut interrupt_status = self.irq.get_interrupt_enabled();
+        interrupt_status |= self.timer.interrupt;
+        self.irq.set_interrupt_enabled(interrupt_status);
         self.timer.interrupt = 0;
+
+        // TODO: Keypad
+        
+        // GPU cycle
+        self.gpu.do_cycle(gputricks);
+
+        // TODO: sound cycle
+
+        // TODO: serial cycle
+
+        return gputricks;
     }
 
     pub fn switch_speed(&mut self) {
@@ -166,7 +209,7 @@ impl Interconnect {
 
         // IE (Interrupt Enable)
         if address == map::IEN {
-            return self.inte;
+            return self.irq.get_interrupt_enabled();
         }
 
         // Infrared (Implementation don't needed)
@@ -239,8 +282,7 @@ impl Interconnect {
 
         // Interrupt Enable
         if address == map::IEN {
-            // TODO implement interrupt
-            return self.inte = value;
+            return self.irq.set_interrupt_enabled(value);
         }
 
         panic!("Write for an unrecognized address: {:04x}", address);
@@ -259,8 +301,6 @@ impl Interconnect {
         self.write_byte(addr + 1, (value >> 8) as u8)
     }
 
-    // ----------------------------------------------------- [IO Ports]
-
     /// Read a byte from the IO ports
     fn read_io(&self, address: u16) -> u8 {
         match address {
@@ -271,7 +311,7 @@ impl Interconnect {
             // Timer
             0x04 ... 0x07 => self.timer.read_byte(0xff00 | address),
             // Interrupt flags
-            0x0f => self.intf,
+            0x0f => self.irq.get_interrupt_flag(),
             // Sound registers
             0x10 ... 0x3f => self.sound.read_byte(address),
             0x10 ... 0x3f => {
@@ -294,7 +334,7 @@ impl Interconnect {
             // Timer
             0x04 ... 0x07 => self.timer.write_byte(0xff00 | address, value),
             // Interrupt flags
-            0x0f => self.intf = value,
+            0x0f => self.irq.set_interrupt_flag(value),
             // Sound registers
             0x10 ... 0x3f => self.sound.write_byte(address, value),
             0x47 => self.gpu.set_bg_palette(value),

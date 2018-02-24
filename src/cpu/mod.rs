@@ -2,7 +2,7 @@
 
 use super::io::Interconnect;
 use self::registers::Registers;
-use std::fmt::{Debug, Formatter, Error};
+use std::fmt::{Debug, Error, Formatter};
 
 mod registers;
 
@@ -17,7 +17,7 @@ pub struct Cpu {
     // is to disable interrupts
     setdi: u8,
     // is to enabled interrupts
-    setei: u8
+    setei: u8,
 }
 
 impl Cpu {
@@ -28,7 +28,7 @@ impl Cpu {
             halted: false,
             ime: false,
             setdi: 0,
-            setei: 0
+            setei: 0,
         }
     }
 
@@ -62,7 +62,7 @@ impl Cpu {
                 self.ime = false;
                 0
             }
-            _ => 0
+            _ => 0,
         };
 
         self.setei = match self.setei {
@@ -71,7 +71,7 @@ impl Cpu {
                 self.ime = true;
                 0
             }
-            _ => 0
+            _ => 0,
         }
     }
 
@@ -127,22 +127,32 @@ impl Cpu {
     /// handle the interrupts
     fn handle_interrupt(&mut self, interconnect: &mut Interconnect) -> u32 {
         // check if the interrupts are enabled
-        if self.ime == false && self.halted == false { return 0 }
+        if self.ime == false && self.halted == false {
+            return 0;
+        }
 
         // check if some interrupt are been fired
-        let triggered = interconnect.inte & interconnect.intf;
-        if triggered == 0 { return 0 }
+        let triggered = interconnect.irq.get_interrupt_enabled() & interconnect.irq.get_interrupt_flag();
+        if triggered == 0 {
+            return 0;
+        }
 
         self.halted = false;
-        if self.ime == false { return 0 }
+        if self.ime == false {
+            return 0;
+        }
         self.ime = false;
 
         // valid the interrupt
         let n = triggered.trailing_zeros();
-        if n >= 5 { panic!("Invalid interrupt triggered"); }
+        if n >= 5 {
+            panic!("Invalid interrupt triggered");
+        }
 
         // clean up the interrupt
-        interconnect.intf &= !(1 << n);
+        let mut interrupt_flags = interconnect.irq.get_interrupt_flag();
+        interrupt_flags &= !(1 << n);
+        interconnect.irq.set_interrupt_flag(interrupt_flags);
 
         // save the current program pointer
         let pc = self.regs.pc;
@@ -165,7 +175,7 @@ impl Cpu {
 
         match opcode {
             // NOP
-            0x00 => { 1 }
+            0x00 => 1,
             // LD (BC),nn
             0x01 => {
                 let word = self.fetch_word(interconnect);
@@ -243,7 +253,7 @@ impl Cpu {
             0x10 => {
                 interconnect.switch_speed();
                 1
-            },
+            }
             // LD (DE),A
             0x12 => {
                 interconnect.write_byte(regs.de(), regs.a);
@@ -483,7 +493,7 @@ impl Cpu {
                 2
             }
             // LD B,B
-            0x40 => { 1 }
+            0x40 => 1,
             // LD B,C
             0x41 => {
                 self.regs.b = regs.c;
@@ -525,7 +535,7 @@ impl Cpu {
                 1
             }
             // LD C,C
-            0x49 => { 1 }
+            0x49 => 1,
             // LD C,D
             0x4a => {
                 self.regs.c = regs.d;
@@ -567,7 +577,7 @@ impl Cpu {
                 1
             }
             // LD D,D
-            0x52 => { 1 }
+            0x52 => 1,
             // LD D,E
             0x53 => {
                 self.regs.d = regs.e;
@@ -609,7 +619,7 @@ impl Cpu {
                 1
             }
             // LD E,E
-            0x5b => { 1 }
+            0x5b => 1,
             // LD E,H
             0x5c => {
                 self.regs.e = regs.h;
@@ -651,7 +661,7 @@ impl Cpu {
                 1
             }
             // LD H,H
-            0x64 => { 1 }
+            0x64 => 1,
             // LD H,L
             0x65 => {
                 self.regs.h = regs.l;
@@ -693,7 +703,7 @@ impl Cpu {
                 1
             }
             // LD L,L
-            0x6d => { 1 }
+            0x6d => 1,
             // LD L,(HL)
             0x6e => {
                 self.regs.l = interconnect.read_byte(regs.hl());
@@ -780,7 +790,7 @@ impl Cpu {
                 2
             }
             // LD A,A
-            0x7f => { 1 }
+            0x7f => 1,
             // ADD A,B
             0x80 => {
                 self.alu_add(regs.b, false);
@@ -1132,7 +1142,7 @@ impl Cpu {
                 2
             }
             // CB Opcodes
-            0xcb => { self.process_cb_opcodes(interconnect) }
+            0xcb => self.process_cb_opcodes(interconnect),
             // CALL nn
             0xcd => {
                 self.stack_push(regs.pc + 2, interconnect);
@@ -1288,17 +1298,35 @@ impl Cpu {
 
         match opcode {
             // RL B
-            0x10 => { self.regs.b = self.alu_rl(regs.b); 2  }
+            0x10 => {
+                self.regs.b = self.alu_rl(regs.b);
+                2
+            }
             // RL C
-            0x11 => { self.regs.c = self.alu_rl(regs.c); 2 }
+            0x11 => {
+                self.regs.c = self.alu_rl(regs.c);
+                2
+            }
             // RL D
-            0x12 => { self.regs.d = self.alu_rl(regs.d); 2 }
+            0x12 => {
+                self.regs.d = self.alu_rl(regs.d);
+                2
+            }
             // RL E
-            0x13 => { self.regs.e = self.alu_rl(regs.e); 2 }
+            0x13 => {
+                self.regs.e = self.alu_rl(regs.e);
+                2
+            }
             // RL H
-            0x14 => { self.regs.h = self.alu_rl(regs.h); 2 }
+            0x14 => {
+                self.regs.h = self.alu_rl(regs.h);
+                2
+            }
             // RL L
-            0x15 => { self.regs.l = self.alu_rl(regs.l); 2 }
+            0x15 => {
+                self.regs.l = self.alu_rl(regs.l);
+                2
+            }
             // RL (HL)
             0x16 => {
                 let value = interconnect.read_byte(regs.hl());
@@ -1307,9 +1335,15 @@ impl Cpu {
                 4
             }
             // RL A
-            0x17 => { self.regs.a = self.alu_rl(regs.a); 2 }
+            0x17 => {
+                self.regs.a = self.alu_rl(regs.a);
+                2
+            }
             // bit
-            0x7c => { self.alu_bit(regs.h, 7); 2 }
+            0x7c => {
+                self.alu_bit(regs.h, 7);
+                2
+            }
             // SET 7,HL
             0xfe => {
                 let address = regs.hl();
@@ -1326,11 +1360,17 @@ impl Cpu {
         let mut a = self.regs.a;
         let mut adjust = if self.regs.flags.c { 0x60 } else { 0x00 };
 
-        if self.regs.flags.h { adjust |= 0x06; };
+        if self.regs.flags.h {
+            adjust |= 0x06;
+        };
 
         if !self.regs.flags.n {
-            if a & 0x0f > 0x09 { adjust |= 0x06; };
-            if a > 0x99 { adjust |= 0x60; };
+            if a & 0x0f > 0x09 {
+                adjust |= 0x06;
+            };
+            if a > 0x99 {
+                adjust |= 0x60;
+            };
             a = a.wrapping_add(adjust);
         } else {
             a = a.wrapping_add(adjust);
@@ -1354,7 +1394,7 @@ impl Cpu {
     }
 
     /// Rotate value thought Carry flag
-    fn alu_rl (&mut self, value: u8) -> u8 {
+    fn alu_rl(&mut self, value: u8) -> u8 {
         let carry = value & 0x80 == 0x80;
 
         // compute the new value
@@ -1566,38 +1606,52 @@ impl Debug for Cpu {
                  self.interconnect.read_byte(self.regs.sp.wrapping_add(2)));*/
 
         // registers
-        writeln!(f, "  af: 0x{:04x}    a: {:3}    f: {:3}",
-                 self.regs.af(),
-                 self.regs.a,
-                 self.regs.f());
+        writeln!(
+            f,
+            "  af: 0x{:04x}    a: {:3}    f: {:3}",
+            self.regs.af(),
+            self.regs.a,
+            self.regs.f()
+        );
 
-        writeln!(f, "  bc: 0x{:04x}    b: {:3}    c: {:3}",
-                 self.regs.bc(),
-                 self.regs.b,
-                 self.regs.c);
+        writeln!(
+            f,
+            "  bc: 0x{:04x}    b: {:3}    c: {:3}",
+            self.regs.bc(),
+            self.regs.b,
+            self.regs.c
+        );
 
-        writeln!(f, "  de: 0x{:04x}    d: {:3}    e: {:3}",
-                 self.regs.de(),
-                 self.regs.d,
-                 self.regs.e);
+        writeln!(
+            f,
+            "  de: 0x{:04x}    d: {:3}    e: {:3}",
+            self.regs.de(),
+            self.regs.d,
+            self.regs.e
+        );
 
-        writeln!(f, "  hl: 0x{:04x}    h: {:3}    l: {:3}",
-//            [hl]: [{:02X} {:02X} ...]",
-                 self.regs.hl(),
-                 self.regs.h,
-                 self.regs.l,
-                 /*self.interconnect.read_byte(self.regs.hl()),
+        writeln!(
+            f,
+            "  hl: 0x{:04x}    h: {:3}    l: {:3}",
+            //            [hl]: [{:02X} {:02X} ...]",
+            self.regs.hl(),
+            self.regs.h,
+            self.regs.l,
+            /*self.interconnect.read_byte(self.regs.hl()),
                  self.interconnect.read_byte(self.regs.hl() + 1)*/
         );
 
         // --- Flags
         writeln!(f, "Flags:");
 
-        writeln!(f, "  z: {}  n: {}  h: {}  c: {}",
-                 self.regs.flags.z as u8,
-                 self.regs.flags.n as u8,
-                 self.regs.flags.h as u8,
-                 self.regs.flags.c as u8);
+        writeln!(
+            f,
+            "  z: {}  n: {}  h: {}  c: {}",
+            self.regs.flags.z as u8,
+            self.regs.flags.n as u8,
+            self.regs.flags.h as u8,
+            self.regs.flags.c as u8
+        );
 
         // CPU State
         writeln!(f, "  ime: {}   halted: {}", self.ime, self.halted);

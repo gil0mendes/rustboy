@@ -227,4 +227,10 @@ impl Gpu {
     pub fn set_bg_palette(&mut self, value: u8) {
         self.bg_palette.set_bits(value);
     }
+
+    pub fn do_cycle(&mut self, trick: u32) {
+        if !self.control.contains(Control::LCD_ON) {
+            return;
+        }
+    }
 }
