@@ -12,6 +12,8 @@ extern crate glium_sdl2;
 extern crate imgui;
 extern crate imgui_glium_renderer;
 extern crate nalgebra;
+#[macro_use]
+extern crate nom;
 
 use std::env;
 use std::fs::File;

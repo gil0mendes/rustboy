@@ -257,6 +257,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "memchr"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "nalgebra"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -275,6 +283,14 @@ dependencies = [
 name = "nodrop"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "nom"
+version = "3.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "memchr 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "num"
@@ -378,6 +394,7 @@ dependencies = [
  "imgui-glium-renderer 0.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nom 3.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "sdl2 0.31.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -493,8 +510,10 @@ dependencies = [
 "checksum log 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "e19e8d5c34a3e0e2223db8e060f9e8264aeeb5c5fc64a4ee9965c062211c024b"
 "checksum log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "89f010e843f2b1a31dbd316b3b8d443758bc634bed37aabade59c686d644e0a2"
 "checksum matrixmultiply 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "cac1a66eab356036af85ea093101a14223dc6e3f4c02a59b7d572e5b93270bf7"
+"checksum memchr 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "148fab2e51b4f1cfc66da2a7c32981d1d3c083a803978268bb11fe4b86925e7a"
 "checksum nalgebra 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e5d2a9e9c6911f2c88b9abb4b01ef232ca73500b14b3a9331b61046a8a00dcb6"
 "checksum nodrop 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)" = "9a2228dca57108069a5262f2ed8bd2e82496d2e074a06d1ccc7ce1687b6ae0a2"
+"checksum nom 3.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "05aec50c70fd288702bcd93284a8444607f3292dbdf2a30de5ea5dcdbe72287b"
 "checksum num 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)" = "4703ad64153382334aa8db57c637364c322d3372e097840c72000dabdcf6156e"
 "checksum num-complex 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)" = "26ff8edeab9f1d8cf6b595e35138c2a389ea29f4f57a0e6bc44abf406e4b0077"
 "checksum num-integer 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)" = "f8d26da319fb45674985c78f1d1caf99aa4941f785d384a2ae36d0740bc3e2fe"
