@@ -5,8 +5,8 @@ use gpu::types;
 use io::Interconnect;
 
 pub struct Machine {
-    cpu: Cpu,
-    interconnect: Interconnect
+    pub cpu: Cpu,
+    pub interconnect: Interconnect
 }
 
 /// Manage the GameBoy as a whole.

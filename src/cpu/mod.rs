@@ -9,11 +9,11 @@ mod registers;
 /// CPU state
 pub struct Cpu {
     /// CPU registers
-    regs: Registers,
+    pub regs: Registers,
     /// CPU halted flag
-    halted: bool,
+    pub halted: bool,
     // interrupts are enabled?
-    ime: bool,
+    pub ime: bool,
     // is to disable interrupts
     setdi: u8,
     // is to enabled interrupts
@@ -64,14 +64,19 @@ impl Cpu {
             }
             _ => 0,
         };
+
+        self.setei = match self.setei {
+            2 => 1,
+            1 => {
+                self.ime = true;
+                0
+            }
+            _ => 0,
+        }
     }
 
     /// Run next intruction
     pub fn next_trick(&mut self, interconnect: &mut Interconnect) -> u32 {
-        // TODO: remove this when implement the GDB
-        println!("{:?}", self);
-
-        // process the next instruction
         self.do_internal_cycle(interconnect) * 4 as u32
     }
 
@@ -1573,81 +1578,5 @@ impl Cpu {
 
         // save the new PC value
         self.regs.pc = pc as u16;
-    }
-}
-
-/// CPU Debugger
-impl Debug for Cpu {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        // --- Print Registers
-        writeln!(f, "Registers");
-
-        // Program Counter
-        /*writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02x} ...]",
-                 self.regs.pc,
-                 self.interconnect.read_byte(self.regs.pc),
-                 self.interconnect.read_byte(self.regs.pc.wrapping_add(1)),
-                 self.interconnect.read_byte(self.regs.pc.wrapping_add(2)));
-
-        // Stack pointer
-        writeln!(f, "  sp: 0x{:04x} [{:02X} {:02X} {:02x} ...]",
-                 self.regs.sp,
-                 self.interconnect.read_byte(self.regs.sp),
-                 self.interconnect.read_byte(self.regs.sp.wrapping_add(1)),
-                 self.interconnect.read_byte(self.regs.sp.wrapping_add(2)));*/
-
-        // registers
-        writeln!(
-            f,
-            "  af: 0x{:04x}    a: {:3}    f: {:3}",
-            self.regs.af(),
-            self.regs.a,
-            self.regs.f()
-        );
-
-        writeln!(
-            f,
-            "  bc: 0x{:04x}    b: {:3}    c: {:3}",
-            self.regs.bc(),
-            self.regs.b,
-            self.regs.c
-        );
-
-        writeln!(
-            f,
-            "  de: 0x{:04x}    d: {:3}    e: {:3}",
-            self.regs.de(),
-            self.regs.d,
-            self.regs.e
-        );
-
-        writeln!(
-            f,
-            "  hl: 0x{:04x}    h: {:3}    l: {:3}",
-            //            [hl]: [{:02X} {:02X} ...]",
-            self.regs.hl(),
-            self.regs.h,
-            self.regs.l,
-            /*self.interconnect.read_byte(self.regs.hl()),
-                 self.interconnect.read_byte(self.regs.hl() + 1)*/
-        );
-
-        // --- Flags
-        writeln!(f, "Flags:");
-
-        writeln!(
-            f,
-            "  z: {}  n: {}  h: {}  c: {}",
-            self.regs.flags.z as u8,
-            self.regs.flags.n as u8,
-            self.regs.flags.h as u8,
-            self.regs.flags.c as u8
-        );
-
-        // CPU State
-        writeln!(f, "  ime: {}   halted: {}", self.ime, self.halted);
-
-        // finish print
-        Ok(())
     }
 }
