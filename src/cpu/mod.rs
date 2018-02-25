@@ -64,21 +64,12 @@ impl Cpu {
             }
             _ => 0,
         };
-
-        self.setei = match self.setei {
-            2 => 1,
-            1 => {
-                self.ime = true;
-                0
-            }
-            _ => 0,
-        }
     }
 
     /// Run next intruction
     pub fn next_trick(&mut self, interconnect: &mut Interconnect) -> u32 {
         // TODO: remove this when implement the GDB
-        // println!("{:?}", self);
+        println!("{:?}", self);
 
         // process the next instruction
         self.do_internal_cycle(interconnect) * 4 as u32

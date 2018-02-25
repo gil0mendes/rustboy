@@ -18,9 +18,6 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use cpu::Cpu;
-use gpu::Gpu;
-use io::Interconnect;
 use cartridge::Cartridge;
 use frontend::Controller;
 use machine::Machine;
@@ -32,6 +29,7 @@ mod frontend;
 mod sound;
 mod cartridge;
 mod machine;
+mod debugger;
 
 fn main() {
     // get first command line argument (rom path)
@@ -39,16 +37,19 @@ fn main() {
 
     // Get rom buffer and create a new cartridge
     let rom_buf = read_rom(rom_name);
-    let mut cartridge = Cartridge::new(rom_buf);
+    let cartridge = Cartridge::new(rom_buf);
 
     // Create a new machine
     let machine = Machine::new(cartridge);
 
+    let mut debugger = debugger::Debugger::new(machine);
+    debugger.run();
+
     // Start the controller
-    match Controller::new(machine) {
-        Ok(controller) => controller.main(),
-        Err(e) => println!("{:?}", e)
-    };
+    // match Controller::new(machine) {
+    //     Ok(controller) => controller.main(),
+    //     Err(e) => println!("{:?}", e)
+    // };
 }
 
 /// Read ROM as a 8-bit integer vector
