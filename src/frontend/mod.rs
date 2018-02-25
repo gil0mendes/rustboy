@@ -6,7 +6,6 @@ use sdl2::video::gl_attr::GLAttr;
 use imgui::ImGui;
 use imgui_glium_renderer;
 
-use cartridge::Cartridge;
 use self::renderer::Renderer;
 use machine::Machine;
 use self::gui::Screen;
@@ -54,12 +53,12 @@ pub struct Controller {
     display: Display,
     renderer: Renderer,
     gui_renderer: imgui_glium_renderer::Renderer,
-    cartridge: Cartridge,
+    machine: Machine,
     imgui: ImGui
 }
 
 impl Controller {
-    pub fn new(cartridge: Cartridge) -> ControllerResult<Self> {
+    pub fn new(machine: Machine) -> ControllerResult<Self> {
         let sdl = sdl2::init()?;
         let sdl_video = sdl.video()?;
 
@@ -83,14 +82,13 @@ impl Controller {
             display,
             renderer,
             gui_renderer,
-            cartridge,
+            machine,
             imgui
         })
     }
 
     pub fn main(mut self) {
         let mut screen = gui::InGameScreen::new();
-        let mut machine = Machine::new(self.cartridge);
 
         'main: loop {
             // Draw the screen
@@ -102,13 +100,13 @@ impl Controller {
             let ui = self.imgui.frame((width, height), (width, height), 0.1);
 
             // process the next instruction
-            machine.emulate();
+            self.machine.emulate();
 
             // TODO: only apply updates when VRAM changes
-            self.renderer.update_pixels(machine.screen_buffer());
+            self.renderer.update_pixels(self.machine.screen_buffer());
 
             // Draw GPU buffer on window
-            self.renderer.draw(&mut target);
+            self.renderer.draw(&mut target).unwrap();
 
             screen.render(&ui);
             target.finish();

@@ -23,6 +23,7 @@ use gpu::Gpu;
 use io::Interconnect;
 use cartridge::Cartridge;
 use frontend::Controller;
+use machine::Machine;
 
 mod io;
 mod cpu;
@@ -36,14 +37,15 @@ fn main() {
     // get first command line argument (rom path)
     let rom_name = env::args().nth(1).unwrap();
 
-    // get rom buffer
+    // Get rom buffer and create a new cartridge
     let rom_buf = read_rom(rom_name);
-
-    // create cartridge
     let mut cartridge = Cartridge::new(rom_buf);
 
+    // Create a new machine
+    let machine = Machine::new(cartridge);
+
     // Start the controller
-    match Controller::new(cartridge) {
+    match Controller::new(machine) {
         Ok(controller) => controller.main(),
         Err(e) => println!("{:?}", e)
     };

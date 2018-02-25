@@ -280,7 +280,7 @@ impl Interconnect {
             return self.irq.set_interrupt_enabled(value);
         }
 
-        panic!("Write for an unrecognized address: {:04x}", address);
+        panic!("Unsupported write at ${:04x} = {:02x}", address, value);
 
         // Infrared (Implementation don't needed)
         // 0xff56 => {}
@@ -309,13 +309,11 @@ impl Interconnect {
             0x0f => self.irq.get_interrupt_flag(),
             // Sound registers
             0x10 ... 0x3f => self.sound.read_byte(address),
-            0x10 ... 0x3f => {
-                // TODO
-                0x00
-            },
             // GPU registers
 //            0x40 ... 0x4b => self.gpu.read_byte(address),
-            _ => 0x00
+            _ => {
+                panic!("TODO: implement address {:4}", address);
+            }
         }
     }
 
