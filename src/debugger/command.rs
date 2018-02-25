@@ -1,11 +1,15 @@
 use std::borrow::Cow;
 use std::str::{self, FromStr};
 
-use nom::{IResult, eol};
+use nom::{
+  IResult, 
+  space,
+  digit,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Command {
-  Step,
+  Step(usize),
   Exit,
   Repeat,
 }
@@ -24,20 +28,22 @@ impl FromStr for Command {
 named!(
   command<Command>,
     do_parse!(
-      c: alt!(
+      c: alt_complete!(
         step |
         exit |
         repeat) >>
+      eof!() >>
       (c)
     )
 );
 
 named!(
   step<Command>,
-  map!(
-    alt_complete!(tag!("step") | tag!("s")),
-    |_| Command::Step
-  )
+  do_parse!(
+    alt_complete!(tag!("step") | tag!("s")) >>
+    steps: opt!(preceded!(space, parse_usize)) >>
+    (Command::Step(steps.unwrap_or(1)))
+  )  
 );
 
 named!(
@@ -51,4 +57,15 @@ named!(
 named!(
   repeat<Command>,
   value!(Command::Repeat)
+);
+
+named!(
+  parse_usize<usize>,
+  map_res!(
+    map_res!(
+      digit,
+      str::from_utf8
+    ),
+    FromStr::from_str
+  )
 );

@@ -35,7 +35,7 @@ impl Debugger {
       };
       
       match command {
-        Ok(Command::Step) => self.step(),
+        Ok(Command::Step(count)) => self.step(count),
         Ok(Command::Exit) => break,
         Ok(Command::Repeat) => unreachable!(),
         Err(ref e) => println!("{}", e),
@@ -45,9 +45,11 @@ impl Debugger {
     }
   }
 
-  fn step(&mut self) {
-    print_cpu_state(&self.machine);
-    self.machine.emulate();
+  fn step(&mut self, count: usize) {
+    for _ in 0..count {
+      print_cpu_state(&self.machine);
+      self.machine.emulate();
+    }
   }
 }
 
