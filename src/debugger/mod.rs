@@ -7,14 +7,16 @@ use self::command::Command;
 mod command;
 
 pub struct Debugger {
-  machine: Machine
+  machine: Machine,
+  last_command: Option<Command>,
 }
 
 impl Debugger {
   /// Create a new Debugger instance.
   pub fn new(machine: Machine) -> Self {
     Self {
-      machine
+      machine,
+      last_command: None,
     }
   }
 
@@ -24,14 +26,22 @@ impl Debugger {
       print!("rustboy> ");
       stdout().flush().unwrap();
 
-      let input = read_stdio();
-      let command = input.parse();
 
+      let command = match (read_stdio().parse(), self.last_command) {
+        (Ok(Command::Repeat), Some(c)) => Ok(c),
+        (Ok(Command::Repeat), None) => Err("No last command".into()),
+        (Ok(c), _) => Ok(c),
+        (Err(e), _) => Err(e),
+      };
+      
       match command {
         Ok(Command::Step) => self.step(),
         Ok(Command::Exit) => break,
-        _ => println!("Invalid command")
+        Ok(Command::Repeat) => unreachable!(),
+        Err(ref e) => println!("{}", e),
       }
+
+      self.last_command = command.ok();
     }
   }
 
@@ -48,6 +58,7 @@ fn read_stdio() -> String {
   input.trim().into()
 }
 
+/// Print the current CPU state
 fn print_cpu_state(machine: &Machine) {
   let cpu = &machine.cpu;
   let interconnect = &machine.interconnect;
