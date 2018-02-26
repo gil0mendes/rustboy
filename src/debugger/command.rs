@@ -43,7 +43,7 @@ named!(
     alt_complete!(tag!("step") | tag!("s")) >>
     steps: opt!(preceded!(space, parse_usize)) >>
     (Command::Step(steps.unwrap_or(1)))
-  )  
+  )
 );
 
 named!(

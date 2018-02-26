@@ -5,6 +5,7 @@ authors = ["Gil Mendes <gil00mendes@gmail.com>"]
 
 [dependencies]
 blip_buf = ">=0.1.3"
+clap = "2.30.0"
 cpal = "0.2"
 sdl2 = "0.31"
 glium_sdl2 = { git = "https://github.com/Gekkio/glium-sdl2.git", branch = "glium0.19-sdl0.31" }

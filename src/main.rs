@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate bitflags;
 extern crate cpal;
+extern crate clap;
 #[macro_use]
 extern crate error_chain;
 extern crate sdl2;
@@ -15,10 +16,15 @@ extern crate nalgebra;
 #[macro_use]
 extern crate nom;
 
-use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+
+use clap::{
+    Arg,
+    ArgMatches,
+    App,
+};
 
 use cartridge::Cartridge;
 use frontend::Controller;
@@ -33,25 +39,20 @@ mod cartridge;
 mod machine;
 mod debugger;
 
-fn main() {
-    // get first command line argument (rom path)
-    let rom_name = env::args().nth(1).unwrap();
-
-    // Get rom buffer and create a new cartridge
-    let rom_buf = read_rom(rom_name);
-    let cartridge = Cartridge::new(rom_buf);
-
-    // Create a new machine
-    let machine = Machine::new(cartridge);
-
-    let mut debugger = debugger::Debugger::new(machine);
-    debugger.run();
-
-    // Start the controller
-    // match Controller::new(machine) {
-    //     Ok(controller) => controller.main(),
-    //     Err(e) => println!("{:?}", e)
-    // };
+/// Build the RustBoy's command line.
+fn build_command_line() -> ArgMatches<'static> {
+    App::new("RustBoy")
+        .version("1.0")
+        .author("Gil Mendes <gil00mendes@gmail.com>")
+        .about("GameBoy Emulator")
+        .arg(Arg::with_name("ROM")
+            .help("ROM to be used")
+            .required(true)
+            .index(1))
+        .arg(Arg::with_name("debug")
+            .short("d")
+            .help("Use debug mode"))
+        .get_matches()
 }
 
 /// Read ROM as a 8-bit integer vector
@@ -70,4 +71,30 @@ fn read_rom<P: AsRef<Path>>(path: P) -> Vec<u8> {
 
     // return buffer
     file_buffer
+}
+
+fn main() {
+    // Build command line and get the matched arguments
+    let matches = build_command_line();
+
+    // get first command line argument (rom path)
+    let rom_name = matches.value_of("ROM").unwrap();
+
+    // Get rom buffer and create a new cartridge
+    let rom_buf = read_rom(rom_name);
+    let cartridge = Cartridge::new(rom_buf);
+
+    // Create a new machine
+    let machine = Machine::new(cartridge);
+
+    if matches.is_present("debug") {
+        let mut debugger = debugger::Debugger::new(machine);
+        debugger.run();
+    } else {
+        // Start the controller
+        match Controller::new(machine) {
+            Ok(controller) => controller.main(),
+            Err(e) => println!("{:?}", e)
+        };
+    }
 }
