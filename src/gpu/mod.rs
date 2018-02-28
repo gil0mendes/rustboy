@@ -187,9 +187,12 @@ impl Gpu {
     }
 
     pub fn read_character_ram(&self, address: u16) -> u8 {
-        // TODO: check if we need to make some state validation
+        if self.mode == Mode::AccessVram {
+            return UNDEFINED_READ;
+        }
+
         let tile = &self.character_ram[address as usize / 16];
-        tile.data[address as usize]
+        tile.data[address as usize % 16]
     }
 
     pub fn write_tile_map1(&mut self, address: u16, value: u8) {

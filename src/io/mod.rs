@@ -154,7 +154,7 @@ impl Interconnect {
 
         // VRAM
         if let Some(off) = map::in_range(address, map::CHAR_RAM) {
-            return self.gpu.read_character_ram(address);
+            return self.gpu.read_character_ram(off);
         }
 
         // V_TILE_MAP1
