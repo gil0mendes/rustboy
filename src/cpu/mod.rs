@@ -1142,6 +1142,15 @@ impl Cpu {
                 self.alu_add(value, false);
                 2
             }
+            // RET Z
+            0xc8 => {
+                if regs.flags.z == true {
+                    self.regs.pc = self.stack_pop(interconnect);
+                    5
+                } else {
+                    2
+                }
+            }
             // CB Opcodes
             0xcb => self.process_cb_opcodes(interconnect),
             // CALL nn
