@@ -392,6 +392,11 @@ impl Cpu {
                 self.regs.l = self.alu_inc(regs.l);
                 1
             }
+            // DEC L
+            0x2d => {
+                self.regs.l = self.alu_dec(regs.l);
+                1
+            }
             // LD L,n
             0x2e => {
                 self.regs.l = self.fetch_byte(interconnect);
