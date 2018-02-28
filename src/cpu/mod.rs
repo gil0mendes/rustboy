@@ -1174,6 +1174,12 @@ impl Cpu {
                 self.alu_sub(value, false);
                 2
             }
+            // RST 10H
+            0xd7 => {
+                self.stack_push(regs.pc, interconnect);
+                self.regs.pc = 0x10;
+                4
+            }
             // SUC #
             0xde => {
                 let value = self.fetch_byte(interconnect);
