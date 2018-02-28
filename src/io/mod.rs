@@ -330,7 +330,11 @@ impl Interconnect {
             0x0f => self.irq.set_interrupt_flag(value),
             // Sound registers
             0x10 ... 0x3f => self.sound.write_byte(address, value),
+            0x42 => self.gpu.set_scroll_y(value),
+            0x43 => self.gpu.set_scroll_x(value),
             0x47 => self.gpu.set_bg_palette(value),
+            0x4a => self.gpu.set_window_y(value),
+            0x4b => self.gpu.set_window_x(value),
             _ => {
                 panic!("Writing to na IO address not handled: {:04x}", address);
             }

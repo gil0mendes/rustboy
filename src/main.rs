@@ -85,16 +85,19 @@ fn main() {
     let cartridge = Cartridge::new(rom_buf);
 
     // Create a new machine
-    let machine = Machine::new(cartridge);
+    let mut machine = Machine::new(cartridge);
 
     if matches.is_present("debug") {
         let mut debugger = debugger::Debugger::new(machine);
         debugger.run();
     } else {
+        loop {
+            machine.emulate();
+        }
         // Start the controller
-        match Controller::new(machine) {
-            Ok(controller) => controller.main(),
-            Err(e) => println!("{:?}", e)
-        };
+        // match Controller::new(machine) {
+        //     Ok(controller) => controller.main(),
+        //     Err(e) => println!("{:?}", e)
+        // };
     }
 }

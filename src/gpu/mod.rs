@@ -236,4 +236,20 @@ impl Gpu {
             return;
         }
     }
+
+    pub fn set_scroll_y(&mut self, value: u8) {
+        self.scroll_y = value;
+    }
+
+    pub fn set_scroll_x(&mut self, value: u8) {
+        self.scroll_x = value;
+    }
+
+    pub fn set_window_y(&mut self, value: u8) {
+        self.window_y = value;
+    }
+
+    pub fn set_window_x(&mut self, value: u8) {
+        self.window_x = value;
+    }
 }
