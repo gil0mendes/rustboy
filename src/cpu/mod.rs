@@ -1213,6 +1213,11 @@ impl Cpu {
                 self.regs.sp = self.alu_add16imm(regs.sp, interconnect);
                 4
             }
+            // JP (HL)
+            0xe9 => {
+                self.regs.pc = regs.hl();
+                1
+            }
             // LD (nn),A
             0xea => {
                 let word = self.fetch_word(interconnect);
