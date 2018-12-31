@@ -80,7 +80,7 @@ struct Palette {
     light: Color,
     dark: Color,
     on: Color,
-    bits: u8
+    bits: u8,
 }
 
 impl Palette {
@@ -90,14 +90,14 @@ impl Palette {
             light: Color::On,
             dark: Color::On,
             on: Color::On,
-            bits: 0xff
+            bits: 0xff,
         }
     }
 
     fn set_bits(&mut self, value: u8) {
-        self.off = Color::from_u8((value >> 0)  & 0x3);
+        self.off = Color::from_u8((value >> 0) & 0x3);
         self.light = Color::from_u8((value >> 2) & 0x3);
-        self.dark= Color::from_u8((value >> 4) & 0x3);
+        self.dark = Color::from_u8((value >> 4) & 0x3);
         self.on = Color::from_u8((value >> 6) & 0x3);
 
         self.bits = value;
@@ -118,7 +118,7 @@ enum Mode {
     AccessOam,
     AccessVram,
     HBlank,
-    VBlank
+    VBlank,
 }
 
 pub struct Gpu {
@@ -150,7 +150,8 @@ pub struct Gpu {
     oam: [Sprite; OAM_SPRITES],
     tile_map1: [u8; TILE_MAP_SIZE],
     tile_map2: [u8; TILE_MAP_SIZE],
-    pub back_buffer: Box<types::ScreenBuffer>
+    pub back_buffer: Box<types::ScreenBuffer>,
+    vramBank: u8,
 }
 
 impl Gpu {
@@ -174,6 +175,7 @@ impl Gpu {
             tile_map1: [0; TILE_MAP_SIZE],
             tile_map2: [0; TILE_MAP_SIZE],
             back_buffer: Box::new(types::SCREEN_EMPTY),
+            vramBank: 0,
         }
     }
 
@@ -251,5 +253,25 @@ impl Gpu {
 
     pub fn set_window_x(&mut self, value: u8) {
         self.window_x = value;
+    }
+
+    pub fn set_vramBank(&mut self, value: u8) {
+        self.vramBank = value;
+    }
+
+    /// Read from the OAM memory
+    pub fn read_oam(&self, address: u16) -> u8 {
+        if self.mode == Mode::AccessVram || self.mode == Mode::AccessOam {
+            return UNDEFINED_READ;
+        }
+
+        let sprite = &self.oam[address as usize / 4];
+
+        match address as usize % 4 {
+            3 => sprite.flags.bits(),
+            2 => sprite.tile_num,
+            1 => sprite.x.wrapping_add(8),
+            _ => sprite.y.wrapping_add(16),
+        }
     }
 }

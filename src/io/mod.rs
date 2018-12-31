@@ -74,12 +74,12 @@ impl Interconnect {
         let player = CpalPlayer::get();
 
         Interconnect {
-            cartridge: cartridge,
+            cartridge,
             io: vec![0x20; 0x7f],
             irq: Irq::new(),
             iram: Ram::new(0x2000),
             zpage: Ram::new(0x7f),
-            gpu: gpu,
+            gpu,
             timer: Timer::new(),
             sound: Sound::new(Box::new(player.expect("Player is mandatory")) as Box<AudioPlayer>),
             serial: Serial::new(),
@@ -184,7 +184,10 @@ impl Interconnect {
 
         // Object Attribute Mapping
         if let Some(off) = map::in_range(address, map::OAM) {
-            panic!("TODO: implement OEM");
+            return match self.dma_status {
+                DMAType::OAM => 0xff,
+                _ => self.gpu.read_oam(off),
+            };
         }
 
         // IO
@@ -257,7 +260,7 @@ impl Interconnect {
 
         // Object Attribute Mapping
         if let Some(off) = map::in_range(address, map::OAM) {
-            panic!("TODO: implement OEM");
+            panic!("TODO: implement OAM2");
         }
 
         // IO
@@ -278,6 +281,11 @@ impl Interconnect {
         // Interrupt Enable
         if address == map::IEN {
             return self.irq.set_interrupt_enabled(value);
+        }
+
+        // TODO: organize this code a bit better
+        if address == 0xff4f {
+            return self.gpu.set_vramBank(value);
         }
 
         panic!("Unsupported write at ${:04x} = {:02x}", address, value);
