@@ -38,6 +38,7 @@ mod sound;
 mod cartridge;
 mod machine;
 mod debugger;
+mod types;
 
 /// Build the RustBoy's command line.
 fn build_command_line() -> ArgMatches<'static> {

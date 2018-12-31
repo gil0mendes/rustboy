@@ -11,6 +11,7 @@ use self::irq::{Irq, Interrupt};
 use self::ram::Ram;
 use self::serial::Serial;
 use self::timer::Timer;
+use self::joypad::Joypad;
 
 mod map;
 mod ram;
@@ -20,6 +21,7 @@ mod irq;
 
 mod timer;
 mod serial;
+mod joypad;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum GbSpeed {
@@ -61,6 +63,7 @@ pub struct Interconnect {
     speed_switch_req: bool,
     // Working RAM Bank
     wrambank: usize,
+    joypad: Joypad,
     // DMA state
     dma_status: DMAType,
     dma_src: u16,
@@ -88,6 +91,7 @@ impl Interconnect {
             speed_switch_req: false,
             wrambank: 1,
             dma_status: DMAType::OAM,
+            joypad: Joypad::new(),
             dma_src: 0,
             dma_dst: 0,
             dma_len: 0xff,
@@ -308,7 +312,7 @@ impl Interconnect {
     fn read_io(&self, address: u16) -> u8 {
         match address {
             // Keypad
-            0x00 => panic!("TODO read keypad"),
+            0x00 => self.joypad.get_register(),
             // Serial
             0x01 ... 0x02 => self.serial.read_byte(0xff00 | address),
             // Timer
@@ -329,7 +333,7 @@ impl Interconnect {
     fn write_io(&mut self, address: u16, value: u8) {
         match address {
             // Keypad
-            0x00 => panic!("TODO write keypad"),
+            0x00 => self.joypad.set_register(value),
             // Serial
             0x01 ... 0x02 => self.serial.write_byte(0xff00 | address, value),
             // Timer
