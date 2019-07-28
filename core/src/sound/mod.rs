@@ -7,7 +7,7 @@ use self::noise_channel::NoiseChannel;
 use self::square_channel::SquareChannel;
 use self::volume_envelope::VolumeEnvelope;
 
-use io::io_map;
+use crate::io::io_map;
 
 extern crate blip_buf;
 

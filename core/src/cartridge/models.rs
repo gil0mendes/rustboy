@@ -70,7 +70,7 @@ fn set_rom_bank(cart: &mut Cartridge, bank: u8) {
 
 mod mbc0 {
     use super::Model;
-    use cartridge::Cartridge;
+    use crate::cartridge::Cartridge;
 
     fn write_rom(_: &mut Cartridge, offset: u16, value: u8) {
         panic!("Unhandled ROM write: {:04x} {:02x}", offset, value);
@@ -87,7 +87,7 @@ mod mbc0 {
 
 mod mbc1 {
     use super::Model;
-    use cartridge::{Cartridge, ROM_BANK_SIZE};
+    use crate::cartridge::{Cartridge, ROM_BANK_SIZE};
 
     fn write_rom(cart: &mut Cartridge, offset: u16, value: u8) {
         match offset {
@@ -163,7 +163,7 @@ mod mbc1 {
 
 mod mbc3 {
     use super::Model;
-    use cartridge::Cartridge;
+    use crate::cartridge::Cartridge;
 
     fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
         match offset {

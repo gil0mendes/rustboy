@@ -1,8 +1,8 @@
-use cartridge::Cartridge;
-use cpu::Cpu;
-use gpu::Gpu;
-use gpu::types;
-use io::Interconnect;
+use crate::cartridge::Cartridge;
+use crate::cpu::Cpu;
+use crate::gpu::Gpu;
+use crate::gpu::types;
+use crate::io::Interconnect;
 
 pub struct Machine {
     pub cpu: Cpu,

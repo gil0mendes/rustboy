@@ -1,8 +1,8 @@
 //! Input/Output abstraction for memory, ROM, and I/O mapped registers.
 
-use cartridge::Cartridge;
-use gpu::Gpu;
-use gpu::types;
+use crate::cartridge::Cartridge;
+use crate::gpu::Gpu;
+use crate::gpu::types;
 use super::sound::AudioPlayer;
 use super::sound::CpalPlayer;
 use super::sound::Sound;
@@ -195,7 +195,7 @@ impl Interconnect {
         }
 
         // Empty I/O zone.
-        if let Some(off) = map::in_range(address, map::EMPTY_RAM) {
+        if let Some(_off) = map::in_range(address, map::EMPTY_RAM) {
             return 0;
         };
 
@@ -268,7 +268,7 @@ impl Interconnect {
         }
 
         // Object Attribute Mapping
-        if let Some(off) = map::in_range(address, map::OAM) {
+        if let Some(_off) = map::in_range(address, map::OAM) {
             panic!("TODO: implement OAM2");
         }
 

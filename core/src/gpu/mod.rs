@@ -233,7 +233,7 @@ impl Gpu {
         self.bg_palette.set_bits(value);
     }
 
-    pub fn do_cycle(&mut self, trick: u32) {
+    pub fn do_cycle(&mut self, _trick: u32) {
         if !self.control.contains(Control::LCD_ON) {
             return;
         }

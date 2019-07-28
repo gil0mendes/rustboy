@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate sdl2;
+extern crate rustboy;
 
 use clap::{
     Arg,

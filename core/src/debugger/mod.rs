@@ -1,6 +1,6 @@
 use std::io::*;
 
-use machine::Machine;
+use crate::machine::Machine;
 
 use self::command::Command;
 

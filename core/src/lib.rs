@@ -13,10 +13,10 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use cartridge::Cartridge;
-pub use machine::Machine;
-pub use config::Config;
-pub use gpu::types::{ScreenBuffer, Color};
+use crate::cartridge::Cartridge;
+pub use crate::machine::Machine;
+pub use crate::config::Config;
+pub use crate::gpu::types::{ScreenBuffer, Color};
 
 mod io;
 mod cpu;

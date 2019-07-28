@@ -1,6 +1,6 @@
 use cpal;
 use std;
-use sound;
+use crate::sound;
 
 pub struct CpalPlayer {
     voice: cpal::Voice
