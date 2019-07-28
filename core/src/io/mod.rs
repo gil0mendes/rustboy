@@ -194,6 +194,11 @@ impl Interconnect {
             };
         }
 
+        // Empty I/O zone.
+        if let Some(off) = map::in_range(address, map::EMPTY_RAM) {
+            return 0;
+        };
+
         // IO
         if let Some(off) = map::in_range(address, map::IO) {
             return self.read_io(off);
@@ -315,16 +320,21 @@ impl Interconnect {
             0x00 => self.joypad.get_register(),
             // Serial
             0x01 ... 0x02 => self.serial.read_byte(0xff00 | address),
+            0x03 => 0,
             // Timer
             0x04 ... 0x07 => self.timer.read_byte(0xff00 | address),
+            0x08 ... 0x0e => 0,
             // Interrupt flags
             0x0f => self.irq.get_interrupt_flag(),
             // Sound registers
             0x10 ... 0x3f => self.sound.read_byte(address),
+            // Read data from the VRAM
+            0x40 ... 0x4f => self.gpu.read_byte(address),
+            0x51 ... 0x7f => 0,
             // GPU registers
 //            0x40 ... 0x4b => self.gpu.read_byte(address),
             _ => {
-                panic!("TODO: implement address {:4}", address);
+                panic!("Read to a IO address not handled: {:#x}", address);
             }
         }
     }
@@ -348,7 +358,7 @@ impl Interconnect {
             0x4a => self.gpu.set_window_y(value),
             0x4b => self.gpu.set_window_x(value),
             _ => {
-                panic!("Writing to na IO address not handled: {:04x}", address);
+                panic!("Writing to a IO address not handled: {:#x}", address);
             }
         }
     }

@@ -1,0 +1,10 @@
+[package]
+name = "frontend"
+version = "0.1.0"
+authors = ["Gil Mendes <gil00mendes@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.30.0"
+sdl2 = "0.32.1"
+rustboy = { path = "../core" }

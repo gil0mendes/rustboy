@@ -16,6 +16,8 @@ pub const IRAM: (u16, u16) = (0xc000, 0xdfff);
 pub const IRAM_ECHO: (u16, u16) = (0xe000, 0xfdff);
 /// Object Attribute Memory
 pub const OAM: (u16, u16) = (0xfe00, 0xfe9f);
+/// Empty but unusable for
+pub const EMPTY_RAM: (u16, u16) = (0xfea0, 0xfeff);
 /// IO ports
 pub const IO: (u16, u16) = (0xff00, 0xff4b);
 /// Register used to unmap the bootrom, Should not

@@ -274,4 +274,11 @@ impl Gpu {
             _ => sprite.y.wrapping_add(16),
         }
     }
+
+    /// Read a byte from the VRAM
+    pub fn read_byte(&self, address: u16) -> u8 {
+        match address {
+            _ => panic!("GPU does not handle read {:#x}", address),
+        }
+    }
 }

@@ -1,17 +1,17 @@
-use glium::{Api, Surface, SwapBuffersError, Version};
-use glium_sdl2::{Display, DisplayBuild, GliumSdl2Error};
 use sdl2;
 use sdl2::{Sdl, VideoSubsystem};
 use sdl2::video::gl_attr::GLAttr;
 use imgui::ImGui;
 use imgui_glium_renderer;
 
+
 use self::renderer::Renderer;
 use machine::Machine;
 use self::gui::Screen;
 
-mod renderer;
 mod gui;
+mod sdl2;
+mod renderer;
 
 #[derive(Clone, Debug)]
 pub enum ControllerError {
